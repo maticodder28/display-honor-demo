@@ -1,0 +1,29 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  verificar:
+    runs-on: ubuntu-latest
+    env:
+      NEXT_TELEMETRY_DISABLED: 1
+      # La compilacion de CI usa el modo demo: no necesita credenciales de Supabase.
+      NEXT_PUBLIC_DEMO: '1'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Instalar dependencias
+        run: npm install --no-audit --no-fund
+      - name: Tipos
+        run: npm run typecheck
+      - name: Lint
+        run: npm run lint
+      - name: Tests
+        run: npm test
+      - name: Build
+        run: npm run build
