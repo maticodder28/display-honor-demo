@@ -252,7 +252,7 @@ select, input[type='search'], input[type='email'], input[type='password'] { font
 .bit-p { display: flex; gap: 12px; align-items: flex-start; padding: 10px 0; border-bottom: 1px dashed var(--line); }
 .bit-p:last-of-type { border-bottom: 0; }
 .bit-p-t { font-size: 13px; font-weight: 600; line-height: 1.4; }
-.bit-p.hecho .bit-p-t { color: var(--mut2); text-decoration: line-through; }
+.bit-p.hecho .bit-p-t { color: var(--mut); text-decoration: line-through; }
 .bit-chk { width: 24px; height: 24px; border-radius: 6px; border: 1.5px solid var(--mut2); background: transparent; cursor: pointer; flex: none; display: grid; place-items: center; padding: 0; color: var(--bg); }
 .bit-chk.on { background: var(--ok); border-color: var(--ok); }
 .bit-chk[disabled] { cursor: default; opacity: .6; }

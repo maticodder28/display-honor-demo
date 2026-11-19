@@ -32,6 +32,9 @@ export interface Extraccion {
   plantilla: string[];
 }
 
+/** Palabras de los nombres de tienda que no distinguen una de otra. */
+const GENERICAS = new Set(['sucursal', 'suc', 'tienda', 'local']);
+
 const NUMEROS: Record<string, number> = { dos: 2, tres: 3, cuatro: 4, cinco: 5, seis: 6, siete: 7, ocho: 8, nueve: 9, diez: 10 };
 
 const PEOR = ['peor', 'peore', 'menor', 'menos', 'debil', 'bajo', 'baja', 'bajar', 'bajan', 'bajad', 'empeo', 'perdi', 'perde', 'mal', 'malas', 'malos', 'cayer', 'cayo', 'caida', 'flojo', 'floja', 'reza'];
@@ -71,31 +74,46 @@ export function extraer(pregunta: string, cat: Catalogo): Extraccion {
     if (tienda) { e.tienda = tienda; marcar(i, 1, '_tienda_'); }
   });
 
-  // 2. Tienda por nombre: cliente + la palabra que la distingue (ej. "ripley portal").
+  // 2. Tienda por nombre. Se puntua cada tienda segun cuantas palabras distintivas de su nombre aparecen
+  //    (sin contar la ciudad ni palabras genericas como "sucursal"). Los numeros ("01", "115") suman pero no se exigen.
+  //    Si el nombre es solo cadena + ciudad ("RIPLEY LA SERENA"), se exige una palabra como "tienda" o "local":
+  //    sin ella, "ripley la serena" se entiende como filtro de cadena y ciudad, que da los mismos numeros.
   if (!e.tienda) {
-    const candidatas: { t: Tienda; i: number; largo: number }[] = [];
+    const pide = ts.some((t, i) => !usados[i] && ['tienda', 'local', 'sucursal'].some((p) => parecida(t, p)));
+    const candidatas: { t: Tienda; idx: number[]; puntaje: number }[] = [];
     for (const t of cat.tiendas) {
-      const nombre = tokens(t.tienda);
-      const ciu = tokens(t.ciudad);
-      // Parte distintiva: el nombre sin la ciudad del final.
-      const sinCiudad = nombre.slice(0, nombre.length - (nombre.slice(-ciu.length).join(' ') === ciu.join(' ') ? ciu.length : 0));
-      if (sinCiudad.length < 2) continue;
-      const i = buscar(ts, usados, sinCiudad);
-      if (i >= 0) candidatas.push({ t, i, largo: sinCiudad.length });
+      if (t.cobertura === 'Cerrada') continue;
+      const ciu = new Set(tokens(t.ciudad));
+      const cli = tokens(t.cliente);
+      const dist = tokens(t.tienda).filter((p) => !ciu.has(p) && !GENERICAS.has(p));
+      const obligatorias = dist.filter((p) => !/\d/.test(p));
+      if (!obligatorias.length) continue;
+      const idx: number[] = [];
+      let hallados = 0;
+      for (const p of dist) {
+        const i = ts.findIndex((x, k) => !usados[k] && !idx.includes(k) && parecida(x, p));
+        if (i >= 0) { idx.push(i); if (!/\d/.test(p)) hallados++; }
+      }
+      const fraccion = hallados / obligatorias.length;
+      const primera = idx.length > 0 && parecida(ts[idx[0]], obligatorias[0]);
+      const soloCadena = obligatorias.length === 1 && cli.includes(obligatorias[0]);
+      const conCiudad = tokens(t.ciudad).every((p) => ts.some((x, k) => !usados[k] && parecida(x, p)));
+      if (!primera || fraccion < 0.6) continue;
+      const conNumero = idx.length > hallados;
+      if (soloCadena ? !(conCiudad && (pide || conNumero)) : !(conCiudad || hallados >= 2)) continue;
+      candidatas.push({ t, idx, puntaje: idx.length + fraccion + (conCiudad ? 0.5 : 0) });
     }
     if (candidatas.length) {
-      // Si se menciona la ciudad, desambigua.
-      const conCiudad = candidatas.filter((c) => buscar(ts, usados, tokens(c.t.ciudad)) >= 0);
-      const lista = conCiudad.length ? conCiudad : candidatas;
-      if (lista.length === 1) {
-        const c = lista[0];
-        e.tienda = c.t;
-        marcar(c.i, c.largo, '_tienda_');
-        const j = buscar(ts, usados, tokens(c.t.ciudad));
-        if (j >= 0) marcar(j, tokens(c.t.ciudad).length, '');
+      const max = Math.max(...candidatas.map((c) => c.puntaje));
+      const mejores = candidatas.filter((c) => c.puntaje === max);
+      const marcarCiudad = (c: Tienda) => { const j = buscar(ts, usados, tokens(c.ciudad)); if (j >= 0) marcar(j, tokens(c.ciudad).length, ''); };
+      if (mejores.length === 1) {
+        e.tienda = mejores[0].t;
+        mejores[0].idx.forEach((i, k) => marcar(i, 1, k === 0 ? '_tienda_' : ''));
+        marcarCiudad(mejores[0].t);
       } else {
-        e.tiendasPosibles = lista.map((c) => c.t);
-        marcar(lista[0].i, lista[0].largo, '_tienda_');
+        e.tiendasPosibles = mejores.map((c) => c.t);
+        mejores[0].idx.forEach((i, k) => marcar(i, 1, k === 0 ? '_tienda_' : ''));
       }
     }
   }

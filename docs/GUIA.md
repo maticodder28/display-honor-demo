@@ -10,7 +10,8 @@ Para la descripción general del proyecto, ver el [README](../README.md).
 1. Entra a [supabase.com](https://supabase.com), crea una cuenta y un proyecto nuevo.
    Región sugerida: **South America (Sao Paulo)**. Guarda la contraseña de la base de datos.
 2. Ve a **SQL Editor > New query**, pega el contenido completo de `supabase/schema.sql` y presiona **Run**.
-3. Abre otra query, pega `supabase/seed.sql` y presiona **Run**. Esto carga datos de ejemplo (ficticios): 36 tiendas,
+3. Abre otra query, pega `supabase/seed.sql` y presiona **Run**. Esto carga datos de ejemplo: las 49 tiendas reales
+   de la zona con números ficticios,
    10 marcas, 7 cortes y los productos de la Foto del Éxito. Para regenerarlos: `npm run seed:demo`.
 
 ### 2. Configurar el login
@@ -185,4 +186,4 @@ El modelo de datos ya está preparado para:
 | `npm run typecheck` | Revisa los tipos de TypeScript |
 | `npm run lint` | Revisa el código con ESLint |
 | `npm test` | Corre los tests (Vitest) |
-| `npm run seed:demo` | Regenera `supabase/seed.sql` con datos ficticios |
+| `npm run seed:demo` | Regenera `supabase/seed.sql` con los datos de la demo |

@@ -79,9 +79,9 @@ export const PREGUNTAS_EVALUACION: PreguntaEvaluacion[] = [
   // Detalle de una tienda
   { pregunta: 'dm110', intencion: 'detalle_tienda', entidades: { tienda: 'DM110' } },
   { pregunta: 'como esta la DM105', intencion: 'detalle_tienda', entidades: { tienda: 'DM105' } },
-  { pregunta: 'info de ripley portal coquimbo', intencion: 'detalle_tienda', entidades: { tienda: 'DM106' } },
+  { pregunta: 'info de falabella mall plaza la serena', intencion: 'detalle_tienda', entidades: { tienda: 'DM113' } },
   { pregunta: 'que onda la tienda DM120', intencion: 'detalle_tienda', entidades: { tienda: 'DM120' } },
-  { pregunta: 'necesito los numeros de entel centro la serena', intencion: 'detalle_tienda', entidades: { tienda: 'DM101' } },
+  { pregunta: 'necesito los numeros de entel quintel balmaceda', intencion: 'detalle_tienda', entidades: { tienda: 'DM122' } },
   { pregunta: 'dm 101 como va', intencion: 'detalle_tienda' },
   { pregunta: 'quien lidera en la DM112', intencion: 'detalle_tienda', entidades: { tienda: 'DM112' } },
 

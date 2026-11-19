@@ -9,12 +9,13 @@ registra **lo que el equipo hace en terreno** y recibe el **checklist semanal** 
 ![TypeScript](https://img.shields.io/badge/TypeScript-strict-3178c6)
 ![Supabase](https://img.shields.io/badge/Supabase-PostgreSQL%20%2B%20RLS-3ecf8e)
 
-**Demo en vivo:** [display-honor-demo.vercel.app](https://display-honor-demo.vercel.app) (datos ficticios, sin login)
+**Demo en vivo:** [display-honor-demo.vercel.app](https://display-honor-demo.vercel.app) (tiendas reales, números ficticios, sin login)
 
 ![Dashboard](docs/capturas/dashboard.png)
 
-> Este repositorio es la versión pública del proyecto. La versión en uso es privada; aquí todos los datos
-> (tiendas, códigos, cantidades y personas) son **ficticios** y se generan con `src/lib/demo.ts`.
+> Este repositorio es la versión pública del proyecto. La versión en uso es privada. Las tiendas son las reales de la
+> Zona Norte (nombre, cadena y ciudad), pero los **números son ficticios**: share, cantidades, coberturas, códigos y
+> personas se generan con `src/lib/demo.ts`.
 
 ---
 
@@ -72,9 +73,9 @@ pregunta -> extractor de entidades -> clasificador de intención -> herramienta 
 
 | Evaluación | Preguntas | Exactitud |
 |---|---:|---:|
-| Generadas, no vistas al entrenar | 440 | 98,6 % |
+| Generadas, no vistas al entrenar | 443 | 96,8 % |
 | Escritas a mano, solo clasificador | 75 | 93,3 % |
-| **Escritas a mano, motor completo** | 75 | **96,0 %** |
+| **Escritas a mano, motor completo** | 75 | **94,7 %** |
 
 Las preguntas escritas a mano usan formas de preguntar que no están en las plantillas de entrenamiento. El detalle por
 intención, la matriz de confusión, los errores y cómo se llegó a estas cifras están en
@@ -133,7 +134,7 @@ flowchart LR
   importa para no bajar el share con tiendas que no se midieron.
 - **Lógica de negocio separada de la interfaz.** El cálculo de share, puestos y empates (`src/lib/compute.ts`), el
   historial (`historial.ts`) y la Foto del Éxito (`foto.ts`) son funciones puras con tests.
-- **Modo demo.** Con `NEXT_PUBLIC_DEMO=1` la app no usa Supabase ni login: genera datos ficticios con semilla fija y
+- **Modo demo.** Con `NEXT_PUBLIC_DEMO=1` la app no usa Supabase ni login: usa las tiendas reales con números ficticios generados con semilla fija y
   fechas relativas a hoy, y cualquier intento de guardar muestra un aviso. Es la versión que se publica.
 
 ## Calidad
@@ -174,7 +175,7 @@ Abre <http://localhost:3000>. Para instalar la versión completa con Supabase, l
 | `npm run typecheck` | Revisión de tipos de TypeScript |
 | `npm run lint` | ESLint |
 | `npm run build` | Compilación de producción |
-| `npm run seed:demo` | Regenera `supabase/seed.sql` con los datos ficticios de la demo |
+| `npm run seed:demo` | Regenera `supabase/seed.sql` con los datos de la demo |
 | `npm run asistente:entrenar` | Entrena el clasificador del asistente y regenera su reporte de evaluación |
 
 ## Estructura
@@ -190,14 +191,14 @@ src/
     excel.ts            Lectura, validación y exportación del Excel
     reporteBitacora.ts  Reporte mensual de la Bitácora (ExcelJS)
     data.ts             Consultas a Supabase desde el servidor
-    demo.ts             Datos ficticios del modo demo
+    demo.ts             Datos del modo demo (tiendas reales, números ficticios)
     asistente/          Motor del asistente: texto, entidades, clasificador, herramientas, modelo entrenado
     *.test.ts           Tests unitarios
 e2e/                    Pruebas de extremo a extremo y accesibilidad
 supabase/
   schema.sql            Tablas, funciones, triggers y reglas de seguridad (RLS)
   migraciones/          Cambios incrementales sobre una base ya creada
-  seed.sql              Datos de ejemplo ficticios
+  seed.sql              Datos de ejemplo (tiendas reales, números ficticios)
 scripts/
   generar-seed.ts       Genera seed.sql desde los datos de la demo
   entrenar-asistente.ts Entrena y evalúa el clasificador de intención
@@ -209,7 +210,7 @@ A production web app I built for Honor's merchandising team in northern Chile. I
 dashboard that tracks the brand's in-store display share against 9 competitors across about 50 stores, keeps a full history
 of every survey upload, logs the field team's store visits and incentives, and collects a weekly compliance checklist
 that store promoters fill in from their phones. It also includes a natural-language assistant built from scratch (entity
-extraction plus a TF-IDF and logistic-regression intent classifier trained without ML libraries, 96% accuracy on
+extraction plus a TF-IDF and logistic-regression intent classifier trained without ML libraries, about 95% accuracy on
 hand-written questions) that runs entirely in the browser. Stack: Next.js 15, React 19, TypeScript, Supabase (PostgreSQL with
 Row Level Security), Vercel. This public repository runs in demo mode with fictional data.
 

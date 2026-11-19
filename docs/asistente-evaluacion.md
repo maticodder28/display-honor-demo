@@ -4,9 +4,9 @@ Generado por `npm run asistente:entrenar` (scripts/entrenar-asistente.ts). No ed
 
 ## Datos y modelo
 
-- **Datos de entrenamiento:** 2206 preguntas generadas desde 104 plantillas,
+- **Datos de entrenamiento:** 2211 preguntas generadas desde 104 plantillas,
   con sinónimos, rellenos ("oye", "por favor"), preguntas sin tildes (30 %) y errores de tipeo (15 %).
-  Separadas al azar en 1764 de entrenamiento y 442 de prueba.
+  Separadas al azar en 1768 de entrenamiento y 443 de prueba.
 - **Representación:** la pregunta pasa por el extractor de entidades, que reemplaza tiendas, ciudades, clientes, marcas
   y métricas por marcadores (`_ciudad_`, `_metrica_`...). Luego TF-IDF sobre raíces de 5 letras y pares de raíces
   consecutivas: 835 características.
@@ -19,9 +19,9 @@ Generado por `npm run asistente:entrenar` (scripts/entrenar-asistente.ts). No ed
 
 | Conjunto | Preguntas | Exactitud |
 |---|---:|---:|
-| Prueba (generadas, no vistas al entrenar) | 442 | 98.6% |
+| Prueba (generadas, no vistas al entrenar) | 443 | 96.8% |
 | Escritas a mano, solo clasificador | 75 | 93.3% |
-| **Escritas a mano, motor completo** (clasificador + reglas) | 75 | **96.0%** |
+| **Escritas a mano, motor completo** (clasificador + reglas) | 75 | **94.7%** |
 
 Las preguntas generadas se parecen a las de entrenamiento, así que su exactitud es optimista. Las escritas a mano
 miden cómo responde ante formas de preguntar que el modelo no vio; la última fila es lo que vive el usuario, porque el
@@ -38,15 +38,15 @@ la cifra es algo optimista: para medir sin sesgo haría falta un tercer conjunto
 | Intención | Preguntas | Precisión | Recall | F1 |
 |---|---:|---:|---:|---:|
 | Share de Honor (`resumen`) | 10 | 90.9% | 100.0% | 95.2% |
-| Marca líder (`lider`) | 8 | 100.0% | 100.0% | 100.0% |
+| Marca líder (`lider`) | 8 | 88.9% | 100.0% | 94.1% |
 | Ranking de tiendas (`ranking_tiendas`) | 10 | 100.0% | 90.0% | 94.7% |
-| Evolución en el tiempo (`tendencia`) | 8 | 87.5% | 87.5% | 87.5% |
+| Evolución en el tiempo (`tendencia`) | 8 | 85.7% | 75.0% | 80.0% |
 | Cambios desde el corte anterior (`cambios_tiendas`) | 8 | 100.0% | 87.5% | 93.3% |
 | Comparar ciudades o clientes (`por_grupo`) | 8 | 100.0% | 87.5% | 93.3% |
 | Detalle de una tienda (`detalle_tienda`) | 7 | 100.0% | 100.0% | 100.0% |
 | Tiendas sin medición (`sin_levantamiento`) | 5 | 100.0% | 100.0% | 100.0% |
-| Ayuda (`ayuda`) | 5 | 100.0% | 80.0% | 88.9% |
-| Fuera de alcance (`fuera`) | 6 | 66.7% | 100.0% | 80.0% |
+| Ayuda (`ayuda`) | 5 | 100.0% | 100.0% | 100.0% |
+| Fuera de alcance (`fuera`) | 6 | 75.0% | 100.0% | 85.7% |
 
 ### Matriz de confusión (preguntas escritas a mano)
 
@@ -55,16 +55,17 @@ la cifra es algo optimista: para medir sin sesgo haría falta un tercer conjunto
 | `resumen` | **10** | . | . | . | . | . | . | . | . | . |
 | `lider` | . | **8** | . | . | . | . | . | . | . | . |
 | `ranking_tiendas` | . | . | **9** | . | . | . | . | . | . | 1 |
-| `tendencia` | . | . | . | **7** | . | . | . | . | . | 1 |
+| `tendencia` | 1 | 1 | . | **6** | . | . | . | . | . | . |
 | `cambios_tiendas` | . | . | . | 1 | **7** | . | . | . | . | . |
-| `por_grupo` | 1 | . | . | . | . | **7** | . | . | . | . |
+| `por_grupo` | . | . | . | . | . | **7** | . | . | . | 1 |
 | `detalle_tienda` | . | . | . | . | . | . | **7** | . | . | . |
 | `sin_levantamiento` | . | . | . | . | . | . | . | **5** | . | . |
-| `ayuda` | . | . | . | . | . | . | . | . | **4** | 1 |
+| `ayuda` | . | . | . | . | . | . | . | . | **5** | . |
 | `fuera` | . | . | . | . | . | . | . | . | . | **6** |
 
 ### Errores del motor completo
 
-- "en cuales tiendas samsung nos supera": esperaba ranking_tiendas, respondió fuera (regla: confianza baja)
-- "vamos para arriba o para abajo?": esperaba tendencia, respondió fuera (regla: confianza baja)
+- "en cuales tiendas samsung nos supera": esperaba ranking_tiendas, respondió fuera
+- "vamos para arriba o para abajo?": esperaba tendencia, respondió lider
+- "quiero ver la tendencia de honor en la serena": esperaba tendencia, respondió resumen
 - "que locales empeoraron esta vez": esperaba cambios_tiendas, respondió tendencia

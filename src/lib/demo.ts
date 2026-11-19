@@ -1,5 +1,6 @@
 /**
- * Modo demo: la app funciona sin Supabase y sin login, con datos ficticios generados en memoria.
+ * Modo demo: la app funciona sin Supabase y sin login. Usa las tiendas reales de la zona con numeros ficticios
+ * generados en memoria.
  * Se activa con NEXT_PUBLIC_DEMO=1. Sirve para mostrar el proyecto sin exponer datos reales.
  *
  * Los datos salen de un generador con semilla fija, asi cada visita ve los mismos numeros.
@@ -41,11 +42,62 @@ export const MARCAS_DEMO = ['Honor', 'Samsung', 'Apple', 'Xiaomi', 'Motorola', '
 /** Peso relativo de cada marca en la exhibicion de una tienda tipica. */
 const PESO = [12, 30, 14, 15, 10, 6, 4, 3, 3, 3];
 
-const CIUDADES: [string, string][] = [
-  ['La Serena', 'Coquimbo'], ['Coquimbo', 'Coquimbo'], ['Ovalle', 'Coquimbo'], ['Copiapó', 'Atacama'], ['Vallenar', 'Atacama'],
+/**
+ * Tiendas reales de la Zona Norte (nombre, cadena, ciudad y region): son locales publicos.
+ * Lo interno se inventa: codigos, cobertura de cada tienda, clusters y todas las cantidades.
+ * El ultimo campo marca una tienda cerrada.
+ */
+const TIENDAS_ZONA: [string, string, string, string, true?][] = [
+  ['RIPLEY LA SERENA', 'Ripley', 'La Serena', 'Coquimbo'],
+  ['WOM SUCURSAL LA SERENA CORDOVEZ', 'WOM', 'La Serena', 'Coquimbo'],
+  ['MOVISTAR COPIAPO', 'Movistar', 'Copiapó', 'Atacama'],
+  ['WOM SUCURSAL COPIAPO CENTRO 01', 'WOM', 'Copiapó', 'Atacama'],
+  ['CLARO LA SERENA', 'Claro', 'La Serena', 'Coquimbo'],
+  ['ENTEL AUSTRAL COPIAPO', 'Entel', 'Copiapó', 'Atacama'],
+  ['ENTEL QUINTEL LA SERENA', 'Entel', 'La Serena', 'Coquimbo'],
+  ['ENTEL QUINTEL OVALLE VIC. MACKENNA 115', 'Entel', 'Ovalle', 'Coquimbo'],
+  ['MOVISTAR SUC LA SERENA DL', 'Movistar', 'La Serena', 'Coquimbo'],
+  ['WOM SUCURSAL PLAZA LA SERENA', 'WOM', 'La Serena', 'Coquimbo'],
+  ['LA POLAR LA SERENA', 'ABC', 'La Serena', 'Coquimbo'],
+  ['FALABELLA MALL COPIAPO', 'Falabella', 'Copiapó', 'Atacama'],
+  ['FALABELLA MALL PLAZA LA SERENA', 'Falabella', 'La Serena', 'Coquimbo'],
+  ['FALABELLA OVALLE', 'Falabella', 'Ovalle', 'Coquimbo'],
+  ['HITES LA SERENA', 'Hites', 'La Serena', 'Coquimbo'],
+  ['HITES OVALLE', 'Hites', 'Ovalle', 'Coquimbo'],
+  ['PARIS COQUIMBO', 'Paris', 'Coquimbo', 'Coquimbo'],
+  ['PARIS PLAZA LA SERENA', 'Paris', 'La Serena', 'Coquimbo'],
+  ['CLARO COPIAPO', 'Claro', 'Copiapó', 'Atacama'],
+  ['CLARO COQUIMBO', 'Claro', 'Coquimbo', 'Coquimbo'],
+  ['ENTEL QUINTEL COQUIMBO', 'Entel', 'Coquimbo', 'Coquimbo'],
+  ['ENTEL QUINTEL LA SERENA BALMACEDA', 'Entel', 'La Serena', 'Coquimbo'],
+  ['MOVISTAR SUC COQUIMBO', 'Movistar', 'Coquimbo', 'Coquimbo'],
+  ['MOVISTAR SUC LA SERENA', 'Movistar', 'La Serena', 'Coquimbo'],
+  ['MOVISTAR SUC OVALLE', 'Movistar', 'Ovalle', 'Coquimbo'],
+  ['MOVISTAR SUC PZA COPIAPO', 'Movistar', 'Copiapó', 'Atacama'],
+  ['MOVISTAR SUC SERENA PRAT', 'Movistar', 'La Serena', 'Coquimbo'],
+  ['VTR 3G BODEGA SUCURSAL COQUIMBO', 'Claro', 'Coquimbo', 'Coquimbo'],
+  ['VTR 3G BODEGA SUCURSAL LA SERENA', 'Claro', 'La Serena', 'Coquimbo'],
+  ['WOM SUCURSAL COQUIMBO', 'WOM', 'Coquimbo', 'Coquimbo'],
+  ['WOM SUCURSAL LA SERENA CENTRO 01', 'WOM', 'La Serena', 'Coquimbo'],
+  ['WOM SUCURSAL MALL VIVO COQUIMBO', 'WOM', 'Coquimbo', 'Coquimbo'],
+  ['WOM SUCURSAL OVALLE', 'WOM', 'Ovalle', 'Coquimbo', true],
+  ['WOM SUCURSAL OVALLE 02', 'WOM', 'Ovalle', 'Coquimbo'],
+  ['WOM SUCURSAL PLAZA COPIAPO', 'WOM', 'Copiapó', 'Atacama'],
+  ['PARIS OVALLE', 'Paris', 'Ovalle', 'Coquimbo'],
+  ['LA POLAR OVALLE', 'ABC', 'Ovalle', 'Coquimbo'],
+  ['HITES COPIAPO', 'Hites', 'Copiapó', 'Atacama'],
+  ['RIPLEY COQUIMBO', 'Ripley', 'Coquimbo', 'Coquimbo'],
+  ['HITES COQUIMBO', 'Hites', 'Coquimbo', 'Coquimbo'],
+  ['ABCDIN VALLENAR', 'ABC', 'Vallenar', 'Atacama'],
+  ['CLARO VALLENAR', 'Claro', 'Vallenar', 'Atacama'],
+  ['ENTEL AUSTRAL VALLENAR', 'Entel', 'Vallenar', 'Atacama'],
+  ['MOVISTAR SUC VALLENAR', 'Movistar', 'Vallenar', 'Atacama'],
+  ['WOM SUCURSAL VALLENAR CENTRO 01', 'WOM', 'Vallenar', 'Atacama'],
+  ['CLARO DAC SUCURSAL OVALLE', 'Claro', 'Ovalle', 'Coquimbo'],
+  ['MOVISTAR SUC MALL PLAZA LA SERENA', 'Movistar', 'La Serena', 'Coquimbo'],
+  ['RIPLEY COPIAPO', 'Ripley', 'Copiapó', 'Atacama'],
+  ['WALMART LA SERENA', 'Walmart', 'La Serena', 'Coquimbo'],
 ];
-const CLIENTES = ['Entel', 'Movistar', 'WOM', 'Claro', 'Falabella', 'Ripley', 'Paris', 'Hites', 'ABC'];
-const LUGARES = ['Centro', 'Mall', 'Plaza', 'Norte', 'Sur', 'Avenida', 'Portal'];
 
 export const PERFILES_DEMO = [
   { id: 'demo', nombre: 'Usuario Demo', cargo: 'Administrador' },
@@ -75,38 +127,20 @@ interface TiendaDemo extends Tienda {
 
 function generarTiendas(): TiendaDemo[] {
   const g = rng(7);
-  const out: TiendaDemo[] = [];
-  const usados = new Set<string>();
-  for (let i = 0; out.length < 36; i++) {
-    const cliente = i < 9 ? CLIENTES[i] : g.elegir(CLIENTES);
-    const [ciudad, region] = i < 5 ? CIUDADES[i] : g.elegir(CIUDADES);
-    const nombre = `${cliente} ${g.elegir(LUGARES)} ${ciudad}`.toUpperCase();
-    if (usados.has(nombre)) continue;
-    usados.add(nombre);
+  return TIENDAS_ZONA.map(([tienda, cliente, ciudad, region, cerrada], i) => {
     const x = g.r();
-    const cobertura: Cobertura = x < 0.45 ? 'Promotor' : x < 0.85 ? 'Middle Management' : 'Sin cobertura';
-    out.push({
-      codigo: `DM${String(101 + out.length)}`,
-      tienda: nombre,
+    const cobertura: Cobertura = cerrada ? 'Cerrada' : x < 0.45 ? 'Promotor' : x < 0.9 ? 'Middle Management' : 'Sin cobertura';
+    return {
+      codigo: `DM${101 + i}`,
+      tienda,
       cliente,
       ciudad,
       region,
       cobertura,
       afinidad: (cobertura === 'Promotor' ? 1.5 : cobertura === 'Middle Management' ? 1 : 0.6) * (0.7 + g.r() * 0.6),
       tamano: g.entre(18, 60),
-    });
-  }
-  // Asegura al menos 6 tiendas Entel para la Foto del Exito.
-  let entel = out.filter((t) => t.cliente === 'Entel').length;
-  for (const t of out) {
-    if (entel >= 6) break;
-    if (t.cliente !== 'Entel' && (t.cliente === 'WOM' || t.cliente === 'Claro')) {
-      t.cliente = 'Entel';
-      t.tienda = t.tienda.replace(/^(WOM|CLARO)/, 'ENTEL');
-      entel++;
-    }
-  }
-  return out;
+    };
+  });
 }
 
 const TIENDAS = generarTiendas();
@@ -129,6 +163,7 @@ function generarCorte(k: number, n: number, fecha: string): DatosCarga['metricas
     pesos[0] = PESO[0] * t.afinidad * (0.85 + 0.35 * avance);
     const fechaTienda = sumarDias(fecha, -g.entre(0, 6));
     const fila = (v: number[]) => ({ fecha: fechaTienda, v });
+    if (t.cobertura === 'Cerrada') continue;
     // Algunas tiendas sin cobertura quedan sin levantamiento en algunos cortes.
     if (t.cobertura === 'Sin cobertura' && g.prob(0.25)) continue;
     met.exhibiciones[t.codigo] = fila(repartir(g, t.tamano + g.entre(-3, 3), pesos));
@@ -203,7 +238,7 @@ const DETALLES: Record<string, string[]> = {
 export function bitacoraDemo() {
   const g = rng(42);
   const hoy = hoyChile();
-  const tiendas = TIENDAS.filter((t) => t.cobertura !== 'Sin cobertura' || g.prob(0.5))
+  const tiendas = TIENDAS.filter((t) => t.cobertura !== 'Cerrada' && (t.cobertura !== 'Sin cobertura' || g.prob(0.5)))
     .map((t) => ({ codigo: t.codigo, nombre: t.tienda, cliente: t.cliente, ciudad: t.ciudad, cobertura: t.cobertura }))
     .sort((a, b) => a.nombre.localeCompare(b.nombre, 'es'));
   const ejecutivos: { id: number; tienda_codigo: string; nombre: string; activo: boolean }[] = [];

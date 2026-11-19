@@ -1,5 +1,5 @@
 /**
- * Genera supabase/seed.sql con los mismos datos ficticios del modo demo.
+ * Genera supabase/seed.sql con los mismos datos del modo demo (tiendas reales, numeros ficticios).
  * Uso: npm run seed:demo
  *
  * Asi el repositorio publico no contiene datos reales y cualquiera puede levantar
@@ -18,7 +18,7 @@ const entel = new Map(foto.tiendas.map((t) => [t.codigo, t]));
 const activas = h.tiendas.filter((t) => t.cobertura !== 'Cerrada').length;
 
 const out: string[] = [
-  '-- Datos de ejemplo (ficticios) para probar el proyecto con Supabase.',
+  '-- Datos de ejemplo para probar el proyecto con Supabase: tiendas reales de la Zona Norte, numeros ficticios.',
   '-- Generado por scripts/generar-seed.ts con los mismos datos del modo demo.',
   '-- Ejecutar DESPUES de schema.sql, en Supabase > SQL Editor. No necesita usuario admin.',
   '',
@@ -29,7 +29,7 @@ const out: string[] = [
   'insert into public.tiendas (codigo, nombre, cliente, ciudad, region, cobertura, zona_id, activa, codigo_b2b, codigo_corto, cluster, merchandiser) values',
   h.tiendas.map((t) => {
     const f = entel.get(t.codigo);
-    return `  (${[q(t.codigo), q(t.tienda), q(t.cliente), q(t.ciudad), q(t.region), q(t.cobertura), zona, 'true',
+    return `  (${[q(t.codigo), q(t.tienda), q(t.cliente), q(t.ciudad), q(t.region), q(t.cobertura), zona, t.cobertura === 'Cerrada' ? 'false' : 'true',
       q(f?.codigo_b2b), q(f?.codigo_corto), q(f?.cluster), q(f?.merchandiser)].join(', ')})`;
   }).join(',\n'),
   'on conflict (codigo) do update set nombre = excluded.nombre, cliente = excluded.cliente, ciudad = excluded.ciudad,',

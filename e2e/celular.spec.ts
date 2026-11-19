@@ -2,7 +2,7 @@ import { expect, test } from '@playwright/test';
 
 test('en el celular la navegación pasa a la barra inferior', async ({ page }) => {
   await page.goto('/');
-  await expect(page.getByRole('note')).toContainText('datos ficticios');
+  await expect(page.getByRole('note')).toContainText('números ficticios');
   await page.getByRole('link', { name: 'Historial' }).last().click();
   await expect(page).toHaveURL(/\/historial$/);
   await expect(page.getByRole('heading', { level: 1 })).toHaveText('Historial y evolución');

@@ -32,7 +32,14 @@ const SLOTS: Record<string, () => string> = {
   ciu: () => elegir(ciudades),
   cli: () => elegir(clientes),
   mar: () => elegir(MARCAS_DEMO.filter((m) => m !== 'Honor')),
-  tie: () => (azar() < 0.5 ? elegir(catalogo.tiendas).codigo : elegir(catalogo.tiendas).tienda.toLowerCase()),
+  // Codigo o nombre de tienda. Si el nombre es solo cadena + ciudad, se antepone "tienda" para que el extractor
+  // lo reconozca como tienda (sin eso se leeria como filtro de cadena y ciudad, y ensuciaria el entrenamiento).
+  tie: () => {
+    const t = elegir(catalogo.tiendas.filter((x) => x.cobertura !== 'Cerrada'));
+    if (azar() < 0.5) return t.codigo;
+    const nombre = t.tienda.toLowerCase();
+    return extraer(nombre, catalogo).entidades.tienda ? nombre : `tienda ${nombre}`;
+  },
   n: () => elegir(['3', '5', '10', 'tres', 'cinco', 'diez']),
   cob: () => elegir(['cobertura promotor', 'middle management', 'middle', 'sin cobertura', 'MM']),
   // Filtro opcional: lugar, cadena o cobertura.

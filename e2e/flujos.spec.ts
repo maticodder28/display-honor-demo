@@ -4,7 +4,7 @@ test.describe('Display', () => {
   test('muestra el resumen de la zona y el aviso de demo', async ({ page }) => {
     await page.goto('/');
     await expect(page.getByRole('heading', { level: 1 })).toContainText('Zona Norte');
-    await expect(page.getByRole('note')).toContainText('datos ficticios');
+    await expect(page.getByRole('note')).toContainText('números ficticios');
     await expect(page.getByText(/del share de exhibiciones/)).toBeVisible();
   });
 
@@ -150,7 +150,7 @@ test.describe('Asistente con respaldo LLM', () => {
     expect(consultas).toBe(0);
 
     // Una pregunta ambigua pasa al respaldo.
-    await page.getByLabel('Tu pregunta').fill('vamos para arriba o para abajo?');
+    await page.getByLabel('Tu pregunta').fill('que opinas del panorama');
     await page.keyboard.press('Enter');
     const ultima = page.locator('.as-resp').last();
     await expect(ultima).toContainText('Respuesta calculada por la herramienta de tendencia.');
@@ -162,7 +162,7 @@ test.describe('Asistente con respaldo LLM', () => {
   test('sin clave configurada todo funciona con el modelo propio', async ({ page }) => {
     await page.goto('/asistente');
     await expect(page.getByText(/Respaldo con LLM desactivado/)).toBeVisible();
-    await page.getByLabel('Tu pregunta').fill('vamos para arriba o para abajo?');
+    await page.getByLabel('Tu pregunta').fill('que opinas del panorama');
     await page.keyboard.press('Enter');
     await expect(page.locator('.as-resp').last()).toContainText('No estoy seguro de entender');
   });

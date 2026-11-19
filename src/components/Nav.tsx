@@ -47,7 +47,7 @@ export default function Nav({ usuario, actualizado, corte, vista }: Props) {
     <>
     {DEMO && (
       <div className="demo-bar" role="note">
-        <b>Demo</b> con datos ficticios: puedes navegar y filtrar, pero nada se guarda.
+        <b>Demo</b>: tiendas reales con números ficticios. Puedes navegar y filtrar, pero nada se guarda.
         {REPO && <> <a href={REPO} target="_blank" rel="noreferrer">Ver el código</a></>}
       </div>
     )}
@@ -150,7 +150,7 @@ export default function Nav({ usuario, actualizado, corte, vista }: Props) {
                   ? <Link className="sh-i" href="/" onClick={() => setHoja(null)}><b>Volver al dashboard</b></Link>
                   : <Link className="sh-i" href="/admin" onClick={() => setHoja(null)}><b>Admin</b><span>Cargas, usuarios y ejecutivos</span></Link>)}
                 {DEMO
-                  ? <div className="sh-nota">Demo con datos ficticios: nada se guarda.</div>
+                  ? <div className="sh-nota">Demo: tiendas reales con números ficticios. Nada se guarda.</div>
                   : <form action="/auth/salir" method="post"><button className="sh-i sh-salir" type="submit"><b>Cerrar sesión</b></button></form>}
               </>
             )}
