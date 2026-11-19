@@ -72,6 +72,13 @@ function Entendi({ r }: { r: Resultado }) {
 
 interface Item { id: number; r: Resultado; consultando?: boolean; aviso?: string }
 
+type Modo = 'auto' | 'propio' | 'groq';
+const MODOS: [Modo, string, string][] = [
+  ['auto', 'Automático', 'El modelo propio responde; Groq solo cuando no está seguro'],
+  ['propio', 'Solo modelo propio', 'Nunca consulta a Groq'],
+  ['groq', 'Groq', 'Todas las preguntas van a Groq'],
+];
+
 const AVISOS: Record<string, string> = {
   limite: 'El respaldo con Groq llegó a su límite de uso por ahora.',
   tiempo: 'Groq tardó demasiado en responder.',
@@ -79,13 +86,14 @@ const AVISOS: Record<string, string> = {
 };
 
 function Mensaje({ item }: { item: Item }) {
+  const consultando = item.r.regla === 'confianza baja' ? 'El modelo propio no está seguro: consultando a Groq...' : 'Consultando a Groq...';
   const { r } = item;
   const t = r.respuesta.tabla;
   if (item.consultando) {
     return (
       <article className="as-msg">
         <p className="as-yo">{r.pregunta}</p>
-        <div className="card as-resp" aria-busy="true"><p className="as-txt s-mut">El modelo propio no está seguro: consultando a Groq...</p></div>
+        <div className="card as-resp" aria-busy="true"><p className="as-txt s-mut">{consultando}</p></div>
       </article>
     );
   }
@@ -118,6 +126,7 @@ export default function Asistente({ datos }: { datos: Historial }) {
   const responder = useMemo(() => crearMotor(modelo as Modelo, datos), [datos]);
   const [conversacion, setConversacion] = useState<Item[]>([]);
   const [llm, setLlm] = useState<{ disponible: boolean; modelo: string } | null>(null);
+  const [modo, setModo] = useState<Modo>('auto');
 
   useEffect(() => {
     fetch('/api/asistente').then((r) => (r.ok ? r.json() : null)).then(setLlm).catch(() => setLlm(null));
@@ -132,8 +141,8 @@ export default function Asistente({ datos }: { datos: Historial }) {
     const p = q.trim();
     if (!p) return;
     const local = responder(p);
-    // Solo se consulta al LLM cuando el modelo propio no esta seguro: ahorra cuota y responde al instante.
-    const usarLLM = llm?.disponible && local.regla === 'confianza baja';
+    // En modo automatico solo se consulta al LLM cuando el modelo propio no esta seguro: ahorra cuota y responde al instante.
+    const usarLLM = !!llm?.disponible && (modo === 'groq' || (modo === 'auto' && local.regla === 'confianza baja'));
     const id = Date.now() + Math.random();
     setConversacion((c) => [...c, { id, r: local, consultando: !!usarLLM }].slice(-30));
     setTexto('');
@@ -186,6 +195,16 @@ export default function Asistente({ datos }: { datos: Historial }) {
         <div className="as-sug" aria-label="Preguntas sugeridas">
           {sugerencias.map((s) => <button key={s} type="button" onClick={() => preguntar(s)}>{s}</button>)}
         </div>
+        {llm?.disponible && (
+          <div className="as-modo">
+            <span className="fl" id="as-modo-l">Responde</span>
+            <div className="pills" role="group" aria-labelledby="as-modo-l">
+              {MODOS.map(([m, l, d]) => (
+                <button key={m} type="button" aria-pressed={modo === m} title={d} onClick={() => setModo(m)}>{l}</button>
+              ))}
+            </div>
+          </div>
+        )}
         <form className="as-form" onSubmit={(e) => { e.preventDefault(); preguntar(texto); }}>
           <label htmlFor="as-q" className="vh">Tu pregunta</label>
           <input id="as-q" ref={entrada} value={texto} onChange={(e) => setTexto(e.target.value)} placeholder="Ej: ¿en qué tiendas de Ovalle está más débil Honor?" autoComplete="off" maxLength={200} />

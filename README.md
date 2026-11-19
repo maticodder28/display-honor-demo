@@ -94,6 +94,8 @@ Cuando el motor propio no está seguro (confianza bajo 45 %), la pregunta se env
 - La clave vive solo en el servidor. Si falta, se agota la cuota o Groq tarda más de 8 segundos, el asistente sigue
   funcionando con el motor propio.
 - Hay un límite de preguntas por visitante, y el panel "Cómo lo entendí" indica si respondió el modelo propio o el LLM.
+- Un selector permite elegir quién responde: **Automático** (el modelo propio, y Groq solo si no está seguro),
+  **Solo modelo propio** o **Groq** (todas las preguntas), útil para comparar ambos.
 - Para activarlo: crea una clave en console.groq.com (plan gratuito, sin tarjeta) y agrega `GROQ_API_KEY` en las
   variables de entorno de Vercel, marcada como Sensitive. Con `GROQ_MODEL` se puede cambiar el modelo
   (por defecto `openai/gpt-oss-20b`).

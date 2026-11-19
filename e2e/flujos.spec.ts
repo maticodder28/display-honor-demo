@@ -159,6 +159,31 @@ test.describe('Asistente con respaldo LLM', () => {
     expect(consultas).toBe(1);
   });
 
+  test('en modo Groq todas las preguntas van a Groq', async ({ page }) => {
+    let consultas = 0;
+    await page.route('/api/asistente', async (route) => {
+      if (route.request().method() === 'GET') return route.fulfill({ json: { disponible: true, modelo: 'modelo-de-prueba' } });
+      consultas++;
+      return route.fulfill({ json: { resultado: {
+        pregunta: route.request().postDataJSON().pregunta, intencion: 'resumen', confianza: 1, alternativas: [], regla: null, origen: 'Groq (modelo-de-prueba)',
+        entidades: { metrica: null, ciudad: 'Coquimbo', cliente: null, cobertura: null, marca: null, tienda: null, tiendasPosibles: [], n: null, direccion: null },
+        respuesta: { texto: 'Respuesta elegida por Groq.', sugerencias: [] },
+      } } });
+    });
+    await page.goto('/asistente');
+    await page.getByRole('button', { name: 'Groq', exact: true }).click();
+    await page.getByLabel('Tu pregunta').fill('como andamos en coquimbo');
+    await page.keyboard.press('Enter');
+    await expect(page.locator('.as-resp').last()).toContainText('Respuesta elegida por Groq.');
+    expect(consultas).toBe(1);
+
+    await page.getByRole('button', { name: 'Solo modelo propio' }).click();
+    await page.getByLabel('Tu pregunta').fill('que opinas del panorama');
+    await page.keyboard.press('Enter');
+    await expect(page.locator('.as-resp').last()).toContainText('No estoy seguro de entender');
+    expect(consultas).toBe(1);
+  });
+
   test('sin clave configurada todo funciona con el modelo propio', async ({ page }) => {
     await page.goto('/asistente');
     await expect(page.getByText(/Respaldo con LLM desactivado/)).toBeVisible();
