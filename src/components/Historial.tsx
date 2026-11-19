@@ -1,7 +1,7 @@
 'use client';
 import { useState } from 'react';
 import { TODAS } from '@/lib/compute';
-import { descargarXlsx, exportarComparacion, exportarExcel, type ComparacionExcel } from '@/lib/excel';
+import type { ComparacionExcel } from '@/lib/excel';
 import { fdate, num, pct } from '@/lib/format';
 import { cambio, comparar, datosDeCorte, medir, type Corte, type Historial as Datos, type Medida, type Tendencia } from '@/lib/historial';
 import { COBERTURAS, METRICAS, UNIDAD, metricaNombre, type Metrica } from '@/lib/types';
@@ -102,11 +102,15 @@ export default function Historial({ tiendas, cortes }: Datos) {
     .filter((f) => vista === 'todas' || f.t === vista)
     .sort((x, y) => (vista === 'peor' ? (x.d ?? 9) - (y.d ?? 9) : (y.d ?? -9) - (x.d ?? -9)));
 
-  function bajarCorte(c: Corte) {
+  // La libreria de Excel (unos 130 KB) se carga solo al descargar.
+  const excel = () => import('@/lib/excel');
+
+  async function bajarCorte(c: Corte) {
+    const { descargarXlsx, exportarExcel } = await excel();
     descargarXlsx(exportarExcel(datosDeCorte(c, tiendas)), `Display_Honor_${zona}_corte_${c.fecha}.xlsx`);
   }
 
-  function bajarComparacion() {
+  async function bajarComparacion() {
     const marcas = uniq([...mA.porMarca.keys(), ...mB.porMarca.keys()])
       .sort((x, y) => (x === 'Honor' ? -1 : y === 'Honor' ? 1 : (mB.porMarca.get(y) ?? 0) - (mB.porMarca.get(x) ?? 0)));
     const sh = (m: Medida, b: string) => (m.total ? (m.porMarca.get(b) ?? 0) / m.total : null);
@@ -123,6 +127,7 @@ export default function Historial({ tiendas, cortes }: Datos) {
         return { cliente: cl, shareA: medir(A, cods, met).share, shareB: medir(B, cods, met).share };
       }),
     };
+    const { descargarXlsx, exportarComparacion } = await excel();
     descargarXlsx(exportarComparacion(datos), `Comparacion_${met}_${A.fecha}_vs_${B.fecha}.xlsx`);
   }
 

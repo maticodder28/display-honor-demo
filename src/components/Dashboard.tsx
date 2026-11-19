@@ -187,7 +187,7 @@ export default function Dashboard({ raw, ejemplo }: { raw: DatosCarga; ejemplo?:
                     {fila.map((r, i) =>
                       !r ? <td key={i} className="na">-</td> : (
                         <td key={i} style={
-                          M.marcas[i] === 'Honor' ? { color: 'var(--acc)' }
+                          M.marcas[i] === 'Honor' ? { color: 'var(--acc-tx)' }
                             : r.puesto === 1 && r.valor > 0 ? { background: 'color-mix(in srgb, var(--fg) 9%, transparent)' }
                               : { fontWeight: 500 }
                         }>{num(r.valor)}</td>
@@ -254,7 +254,7 @@ function Coberturas({ M, K, cobertura, onPick }: { M: Modelo; K: KFn; cobertura:
         if (!c) return null;
         const estado = cobertura === cv ? ' on' : cobertura !== TODAS ? ' dim' : '';
         return (
-          <button key={cv} type="button" className={`card cob ${cls}${estado}`} aria-label={`Filtrar por ${titulo}`} onClick={() => onPick(cv)}>
+          <button key={cv} type="button" className={`card cob ${cls}${estado}`} aria-pressed={cobertura === cv} title={`Filtrar por ${titulo}`} onClick={() => onPick(cv)}>
             <div className="cobh">
               <div className="av">{ini}</div>
               <div><b>{titulo}</b><span>{c.tiendas} tiendas | Honor vs. marca líder</span></div>

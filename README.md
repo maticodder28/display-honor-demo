@@ -88,9 +88,16 @@ flowchart LR
 
 ## Calidad
 
-- 26 tests con **Vitest** sobre la lógica de negocio: share, puestos con empate, Muebles como DC + Display Zone,
+- **26 tests unitarios (Vitest)** sobre la lógica de negocio: share, puestos con empate, Muebles como DC + Display Zone,
   comparación de cortes, semanas y cumplimiento de la Foto del Éxito, y consistencia de los datos de la demo.
-- **GitHub Actions** revisa tipos, lint, tests y compilación en cada push.
+- **22 pruebas de extremo a extremo (Playwright)** en escritorio y celular: filtros, orden y búsqueda, tema recordado,
+  comparación de cortes, descargas de Excel, ida y vuelta del Excel en Admin (descargar, volver a subir, validar y publicar).
+- **Accesibilidad WCAG 2.1 AA** revisada con axe en las 5 pantallas y en ambos temas, sin problemas graves.
+  La primera auditoría encontró más de 200 elementos con contraste insuficiente; se corrigieron en las variables de color del tema.
+- **Lighthouse** (compilación de producción, emulación de celular): Rendimiento 96 a 100, Accesibilidad 100,
+  Buenas prácticas 100 y SEO 100 en las 5 pantallas. Las librerías de Excel se cargan solo al usarlas, lo que bajó
+  el JavaScript inicial de Historial de 259 KB a 116 KB.
+- **GitHub Actions** revisa tipos, lint, tests unitarios, compilación y pruebas de extremo a extremo en cada push.
 - Esquema y datos de ejemplo verificados contra PostgreSQL.
 
 ## Probarlo en tu computador
@@ -109,7 +116,8 @@ Abre <http://localhost:3000>. Para instalar la versión completa con Supabase, l
 | Comando | Qué hace |
 |---|---|
 | `npm run dev` | Servidor local en http://localhost:3000 |
-| `npm test` | Tests con Vitest |
+| `npm test` | Tests unitarios (Vitest) |
+| `npm run test:e2e` | Pruebas de extremo a extremo y accesibilidad (Playwright) |
 | `npm run typecheck` | Revisión de tipos de TypeScript |
 | `npm run lint` | ESLint |
 | `npm run build` | Compilación de producción |
@@ -129,7 +137,8 @@ src/
     reporteBitacora.ts  Reporte mensual de la Bitácora (ExcelJS)
     data.ts             Consultas a Supabase desde el servidor
     demo.ts             Datos ficticios del modo demo
-    *.test.ts           Tests
+    *.test.ts           Tests unitarios
+e2e/                    Pruebas de extremo a extremo y accesibilidad
 supabase/
   schema.sql            Tablas, funciones, triggers y reglas de seguridad (RLS)
   migraciones/          Cambios incrementales sobre una base ya creada

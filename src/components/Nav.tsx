@@ -56,7 +56,7 @@ export default function Nav({ usuario, actualizado, corte, vista }: Props) {
         <Link className="brand" href={usuario.rol === 'promotor' ? '/foto' : '/'}>
           <span className="dot" />HONOR <small>{usuario.nombre} | {cargo}</small>
         </Link>
-        <button className="nb-yo" type="button" aria-label="Cuenta y opciones" aria-expanded={hoja === 'cuenta'} onClick={() => setHoja(hoja === 'cuenta' ? null : 'cuenta')}>
+        <button className="nb-yo" type="button" aria-label={`Cuenta y opciones (${iniciales})`} aria-expanded={hoja === 'cuenta'} onClick={() => setHoja(hoja === 'cuenta' ? null : 'cuenta')}>
           {iniciales}
         </button>
         {vista !== 'admin' && usuario.rol !== 'promotor' && (
@@ -74,7 +74,7 @@ export default function Nav({ usuario, actualizado, corte, vista }: Props) {
               {corte ? ` | levantamiento ${corte}` : ''}
             </span>
           )}
-          <button className="ibtn" type="button" onClick={cambiarTema} aria-label="Cambiar tema">
+          <button className="ibtn" type="button" onClick={cambiarTema} aria-label={tema === 'dark' ? 'Cambiar a tema claro' : 'Cambiar a tema oscuro'}>
             {tema === 'dark' ? <><Sol /> Claro</> : <><Luna /> Oscuro</>}
           </button>
           {usuario.esAdmin && (

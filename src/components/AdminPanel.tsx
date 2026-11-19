@@ -2,7 +2,10 @@
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
-import { aPayload, descargarXlsx, exportarExcel, fechaMaxima, leerExcel, type ResultadoLectura } from '@/lib/excel';
+import type { ResultadoLectura } from '@/lib/excel';
+
+// La libreria de Excel se carga solo al subir o descargar un archivo.
+const excel = () => import('@/lib/excel');
 import { compute, clave, TODAS } from '@/lib/compute';
 import { fdate, pct } from '@/lib/format';
 import { METRICAS_DATOS, METRICAS_PRINCIPALES, type DatosCarga } from '@/lib/types';
@@ -33,6 +36,7 @@ export default function AdminPanel({ zona, actual, historial, fechas }: Props) {
     setArchivo(file.name);
     setEstado(null);
     try {
+      const { fechaMaxima, leerExcel } = await excel();
       const l = leerExcel(await file.arrayBuffer());
       setLectura(l);
       const hoy = hoyChile();
@@ -51,6 +55,7 @@ export default function AdminPanel({ zona, actual, historial, fechas }: Props) {
     }
     if (fechas.includes(corte) && !window.confirm(`Ya hay un corte con fecha ${fdate(corte)}. ¿Reemplazarlo por este Excel? El anterior se borra del historial.`)) return;
     setEstado({ tipo: 'trabajando', texto: 'Publicando...' });
+    const { aPayload } = await excel();
     const supabase = createClient();
     const { error } = await supabase.rpc('publicar_carga', { p: aPayload(lectura.datos, zona, archivo, corte) });
     if (error) {
@@ -63,8 +68,9 @@ export default function AdminPanel({ zona, actual, historial, fechas }: Props) {
     router.refresh();
   }
 
-  function descargar() {
+  async function descargar() {
     if (!actual) return;
+    const { descargarXlsx, exportarExcel } = await excel();
     descargarXlsx(exportarExcel(actual), `Display_Honor_${zona}_${hoyChile()}.xlsx`);
   }
 
@@ -79,7 +85,7 @@ export default function AdminPanel({ zona, actual, historial, fechas }: Props) {
           <div className="step">
             <div className="sn">1</div>
             <div>
-              <h3>Descarga el Excel actual</h3>
+              <h2>Descarga el Excel actual</h2>
               <p>Parte desde los datos publicados, con las tiendas y marcas al día. Edita las cantidades en las hojas Exhibiciones, Muebles DC, Display Zone y Promotores.</p>
               <button className="abtn ghost" type="button" onClick={descargar} disabled={!actual}>Descargar Excel actual</button>
             </div>
@@ -87,7 +93,7 @@ export default function AdminPanel({ zona, actual, historial, fechas }: Props) {
           <div className="step">
             <div className="sn">2</div>
             <div>
-              <h3>Sube el Excel actualizado</h3>
+              <h2>Sube el Excel actualizado</h2>
               <p>
                 Debe tener las hojas <b>Tiendas</b>, <b>Exhibiciones</b>, <b>Muebles DC</b>, <b>Display Zone</b> y <b>Promotores</b>. Deja vacía la fila de una
                 tienda sin levantamiento; un 0 significa que la marca no tiene nada ahí. Para agregar una marca, inserta su columna
@@ -110,7 +116,7 @@ export default function AdminPanel({ zona, actual, historial, fechas }: Props) {
             <div className="step">
               <div className="sn">3</div>
               <div>
-                <h3>Revisa y publica</h3>
+                <h2>Revisa y publica</h2>
                 {d && (
                   <div className="sum">
                     <div><b>{activas.length}</b><span>tiendas activas</span></div>

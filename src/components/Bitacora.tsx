@@ -1,5 +1,5 @@
 'use client';
-import { useMemo, useState } from 'react';
+import { useMemo, useState, type CSSProperties } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import type { BitAccion, BitEjecutivo, BitPerfil, BitTienda } from '@/lib/data';
 
@@ -483,7 +483,7 @@ export default function Bitacora({ hoy, usuario, tiendas, ejecutivos: ejecutivos
                   <i style={{ background: t?.color }} />
                   <div>
                     <div className="bit-h-m">
-                      <b style={{ color: t?.color }}>{t?.label ?? a.tipo}</b>
+                      <b style={{ '--c': t?.color } as CSSProperties}>{t?.label ?? a.tipo}</b>
                       {a.ejecutivo_id && <span className="hint">| {ejNombre.get(a.ejecutivo_id) ?? 'ejecutivo'}</span>}
                       {dato && <b>{dato}</b>}
                       {a.pendiente && !a.hecho && <span className="badge b-warn">Pendiente</span>}
