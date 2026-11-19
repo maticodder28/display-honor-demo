@@ -44,6 +44,11 @@ describe('entidades', () => {
     expect(e.cliente).toBe('Falabella');
   });
 
+  it('reconoce una tienda solo por el número de su código', () => {
+    expect(extraer('como va la 105', catalogo).entidades.tienda?.codigo).toBe('DM105');
+    expect(extraer('las 5 tiendas mas flojas', catalogo).entidades.tienda).toBeNull();
+  });
+
   it('no confunde la métrica promotores con la cobertura Promotor', () => {
     expect(extraer('share de promotores', catalogo).entidades).toMatchObject({ metrica: 'promotores', cobertura: null });
     expect(extraer('share en tiendas con cobertura promotor', catalogo).entidades).toMatchObject({ cobertura: 'Promotor' });

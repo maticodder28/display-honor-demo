@@ -71,7 +71,12 @@ export function extraer(pregunta: string, cat: Catalogo): Extraccion {
     const junto = porCodigo.get(t + (ts[i + 1] ?? ''));
     if (junto) { e.tienda = junto; marcar(i, 2, '_tienda_'); return; }
     const tienda = porCodigo.get(t);
-    if (tienda) { e.tienda = tienda; marcar(i, 1, '_tienda_'); }
+    if (tienda) { e.tienda = tienda; marcar(i, 1, '_tienda_'); return; }
+    // Solo el numero del codigo ("la 255762"), si identifica una unica tienda.
+    if (/^\d{3,}$/.test(t)) {
+      const conNumero = cat.tiendas.filter((x) => x.codigo.toLowerCase().endsWith(t) && /\D/.test(x.codigo.toLowerCase().slice(0, -t.length).slice(-1)));
+      if (conNumero.length === 1) { e.tienda = conNumero[0]; marcar(i, 1, '_tienda_'); }
+    }
   });
 
   // 2. Tienda por nombre. Se puntua cada tienda segun cuantas palabras distintivas de su nombre aparecen
