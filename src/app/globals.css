@@ -469,3 +469,11 @@ body:has(.prog.cargando) main { opacity: .5; transition: opacity .25s .12s; poin
   .as-pie { bottom: calc(72px + env(safe-area-inset-bottom)); }
   .as-yo { max-width: 92%; }
 }
+.as-largo { line-height: 1.6; }
+.as-largo p, .as-largo ul, .as-largo ol { margin: 0 0 10px; }
+.as-largo ul, .as-largo ol { padding-left: 22px; }
+.as-largo li { margin: 3px 0; }
+.as-largo b { color: var(--acc-tx); }
+.as-ia { align-self: flex-start; font-size: 12px; font-weight: 800; letter-spacing: .04em; color: var(--acc-tx); border: 1px solid color-mix(in srgb, var(--acc) 45%, transparent); border-radius: 999px; padding: 3px 10px; }
+.as-pasos { margin: 8px 0 0; padding-left: 20px; }
+.as-pasos li { margin: 2px 0; }

@@ -126,67 +126,82 @@ test.describe('Asistente', () => {
   });
 });
 
-test.describe('Asistente con respaldo LLM', () => {
-  test('consulta a Groq solo cuando el modelo propio no está seguro', async ({ page }) => {
+/** Respuesta del agente tal como la devuelve el servidor. */
+const analisis = (pregunta: string, texto: string) => ({ resultado: {
+  pregunta, intencion: 'analisis', confianza: 1, alternativas: [], regla: null, origen: 'Groq (modelo-de-prueba)',
+  entidades: { metrica: null, ciudad: null, cliente: null, cobertura: null, marca: null, tienda: null, tiendasPosibles: [], n: null, direccion: null },
+  respuesta: { texto, sugerencias: [] },
+  analisis: { pasos: [{ herramienta: 'resumen', filtros: { ciudad: 'La Serena' } }, { herramienta: 'tendencia', filtros: {} }], verificacion: { verificadas: 2, sinVerificar: [] } },
+} });
+
+test.describe('Asistente con Groq', () => {
+  test('en modo automático Groq solo entra cuando el modelo propio no está seguro', async ({ page }) => {
     let consultas = 0;
     await page.route('/api/asistente', async (route) => {
       if (route.request().method() === 'GET') return route.fulfill({ json: { disponible: true, modelo: 'modelo-de-prueba' } });
       consultas++;
-      const pregunta = route.request().postDataJSON().pregunta;
-      // Respuesta armada como la devolveria el servidor tras ejecutar la herramienta elegida.
-      return route.fulfill({ json: { resultado: {
-        pregunta, intencion: 'tendencia', confianza: 1, alternativas: [], regla: null, origen: 'Groq (modelo-de-prueba)',
-        entidades: { metrica: null, ciudad: null, cliente: null, cobertura: null, marca: null, tienda: null, tiendasPosibles: [], n: null, direccion: null },
-        respuesta: { texto: 'Respuesta calculada por la herramienta de tendencia.', sugerencias: [] },
-      } } });
+      return route.fulfill({ json: analisis(route.request().postDataJSON().pregunta, 'Honor va bien en general.\n\n- Reforzar La Serena.\n- Revisar Ovalle.') });
     });
     await page.goto('/asistente');
-    await expect(page.getByText(/Respaldo con LLM activo/)).toBeVisible();
-
-    // Una pregunta clara la responde el modelo propio, sin llamar al LLM.
     await page.getByLabel('Tu pregunta').fill('como andamos en coquimbo');
     await page.keyboard.press('Enter');
     await expect(page.locator('.as-resp').last()).toContainText('En Coquimbo, Honor tiene');
     expect(consultas).toBe(0);
 
-    // Una pregunta ambigua pasa al respaldo.
     await page.getByLabel('Tu pregunta').fill('que opinas del panorama');
     await page.keyboard.press('Enter');
     const ultima = page.locator('.as-resp').last();
-    await expect(ultima).toContainText('Respuesta calculada por la herramienta de tendencia.');
-    await ultima.getByText('Cómo lo entendí').click();
-    await expect(ultima).toContainText('Groq (modelo-de-prueba)');
+    await expect(ultima).toContainText('Análisis generado por IA');
+    await expect(ultima.getByRole('listitem').filter({ hasText: 'Reforzar La Serena.' })).toBeVisible();
+    await ultima.getByText('Cómo lo razonó').click();
+    await expect(ultima).toContainText('2 consultas');
+    await expect(ultima).toContainText('Las 2 cifras de la respuesta aparecen en las consultas.');
     expect(consultas).toBe(1);
   });
 
-  test('en modo Groq todas las preguntas van a Groq', async ({ page }) => {
-    let consultas = 0;
+  test('en modo Groq todas las preguntas van al agente, con el contexto de la conversación', async ({ page }) => {
+    const cuerpos: { pregunta: string; historial: unknown[] }[] = [];
     await page.route('/api/asistente', async (route) => {
       if (route.request().method() === 'GET') return route.fulfill({ json: { disponible: true, modelo: 'modelo-de-prueba' } });
-      consultas++;
-      return route.fulfill({ json: { resultado: {
-        pregunta: route.request().postDataJSON().pregunta, intencion: 'resumen', confianza: 1, alternativas: [], regla: null, origen: 'Groq (modelo-de-prueba)',
-        entidades: { metrica: null, ciudad: 'Coquimbo', cliente: null, cobertura: null, marca: null, tienda: null, tiendasPosibles: [], n: null, direccion: null },
-        respuesta: { texto: 'Respuesta elegida por Groq.', sugerencias: [] },
-      } } });
+      const body = route.request().postDataJSON();
+      cuerpos.push(body);
+      return route.fulfill({ json: analisis(body.pregunta, `Análisis de: ${body.pregunta}`) });
     });
     await page.goto('/asistente');
     await page.getByRole('button', { name: 'Groq', exact: true }).click();
     await page.getByLabel('Tu pregunta').fill('como andamos en coquimbo');
     await page.keyboard.press('Enter');
-    await expect(page.locator('.as-resp').last()).toContainText('Respuesta elegida por Groq.');
-    expect(consultas).toBe(1);
+    await expect(page.locator('.as-resp').last()).toContainText('Análisis de: como andamos en coquimbo');
+    await page.getByLabel('Tu pregunta').fill('¿y en ovalle?');
+    await page.keyboard.press('Enter');
+    await expect(page.locator('.as-resp').last()).toContainText('Análisis de: ¿y en ovalle?');
+    expect(cuerpos).toHaveLength(2);
+    expect(cuerpos[1].historial).toHaveLength(1);
 
     await page.getByRole('button', { name: 'Solo modelo propio' }).click();
     await page.getByLabel('Tu pregunta').fill('que opinas del panorama');
     await page.keyboard.press('Enter');
     await expect(page.locator('.as-resp').last()).toContainText('No estoy seguro de entender');
-    expect(consultas).toBe(1);
+    expect(cuerpos).toHaveLength(2);
+  });
+
+  test('si Groq falla, responde el modelo propio y lo avisa', async ({ page }) => {
+    await page.route('/api/asistente', async (route) => {
+      if (route.request().method() === 'GET') return route.fulfill({ json: { disponible: true, modelo: 'modelo-de-prueba' } });
+      return route.fulfill({ status: 429, json: { fallo: 'limite' } });
+    });
+    await page.goto('/asistente');
+    await page.getByRole('button', { name: 'Groq', exact: true }).click();
+    await page.getByLabel('Tu pregunta').fill('como andamos en coquimbo');
+    await page.keyboard.press('Enter');
+    const ultima = page.locator('.as-resp').last();
+    await expect(ultima).toContainText('límite de uso');
+    await expect(ultima).toContainText('En Coquimbo, Honor tiene');
   });
 
   test('sin clave configurada todo funciona con el modelo propio', async ({ page }) => {
     await page.goto('/asistente');
-    await expect(page.getByText(/Respaldo con LLM desactivado/)).toBeVisible();
+    await expect(page.getByText(/Groq no está configurado/)).toBeVisible();
     await page.getByLabel('Tu pregunta').fill('que opinas del panorama');
     await page.keyboard.press('Enter');
     await expect(page.locator('.as-resp').last()).toContainText('No estoy seguro de entender');

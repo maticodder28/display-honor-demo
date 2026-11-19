@@ -12,9 +12,16 @@ import * as H from './herramientas';
 import type { Intencion } from './intenciones';
 import { raiz, significativas, tokens } from './texto';
 
+/** Como razono el agente: que consultas hizo y cuantas cifras de su respuesta se pudieron verificar. */
+export interface Analisis {
+  pasos: { herramienta: Intencion; filtros: Record<string, string | number> }[];
+  verificacion: { verificadas: number; sinVerificar: string[] };
+}
+
 export interface Resultado {
   pregunta: string;
-  intencion: Intencion;
+  /** 'analisis' cuando responde el agente con un texto propio. */
+  intencion: Intencion | 'analisis';
   confianza: number;
   /** Las tres intenciones mas probables, para mostrar como entendio la pregunta. */
   alternativas: { clase: string; p: number }[];
@@ -24,6 +31,7 @@ export interface Resultado {
   /** Quien resolvio la pregunta: el motor propio o un modelo externo (ej. "Groq openai/gpt-oss-20b"). */
   origen: 'propio' | string;
   respuesta: H.Respuesta;
+  analisis?: Analisis;
 }
 
 const SALUDOS = new Set(['hola', 'holi', 'buenas', 'buenos', 'dias', 'tardes', 'noches', 'gracias', 'muchas', 'ok', 'okey', 'perfecto', 'genial', 'hey', 'saludos', 'chao', 'adios']);

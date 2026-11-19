@@ -84,21 +84,30 @@ intención, la matriz de confusión, los errores y cómo se llegó a estas cifra
 **Por qué el motor propio primero:** cuesta cero, nunca se cae por cuota, responde al instante y no puede inventar
 datos. La contra es que solo entiende las intenciones que se diseñaron.
 
-### Respaldo opcional con un LLM (Groq)
+### Agente con Groq para preguntas abiertas
 
-Cuando el motor propio no está seguro (confianza bajo 45 %), la pregunta se envía a una ruta del servidor
-(`src/app/api/asistente/route.ts`) que consulta un modelo en [Groq](https://console.groq.com) con **tool calling**:
+Para preguntas abiertas ("¿qué opinas de nuestro panorama?", "¿dónde debería enfocar el trabajo esta semana?") hay un
+**agente** con un LLM en [Groq](https://console.groq.com) (`src/lib/asistente/agente.ts`):
 
-- El LLM **no redacta la respuesta**: solo elige una de las mismas herramientas y sus filtros. Los argumentos se validan
-  contra los datos reales (una ciudad inexistente se descarta) y la respuesta la calcula el mismo código de siempre.
-- La clave vive solo en el servidor. Si falta, se agota la cuota o Groq tarda más de 8 segundos, el asistente sigue
-  funcionando con el motor propio.
-- Hay un límite de preguntas por visitante, y el panel "Cómo lo entendí" indica si respondió el modelo propio o el LLM.
-- Un selector permite elegir quién responde: **Automático** (el modelo propio, y Groq solo si no está seguro),
-  **Solo modelo propio** o **Groq** (todas las preguntas), útil para comparar ambos.
-- Para activarlo: crea una clave en console.groq.com (plan gratuito, sin tarjeta) y agrega `GROQ_API_KEY` en las
-  variables de entorno de Vercel, marcada como Sensitive. Con `GROQ_MODEL` se puede cambiar el modelo
-  (por defecto `openai/gpt-oss-20b`).
+1. El modelo recibe la pregunta y decide qué datos necesita. Llama a las mismas herramientas del asistente (share,
+   ranking de tiendas, evolución, cambios, comparación por grupo...) hasta 5 veces, con los argumentos validados contra
+   los datos reales.
+2. Con esos resultados razona y redacta un análisis propio: interpreta, compara y termina con recomendaciones.
+3. Un **verificador de cifras** compara cada porcentaje de la respuesta con los resultados de las consultas y marca los
+   que no aparecen (por ejemplo, un cálculo hecho por el modelo). La respuesta lleva la marca "Análisis generado por IA",
+   y el panel "Cómo lo razonó" muestra cada consulta que hizo.
+
+Detalles de ingeniería:
+
+- **Quién responde:** un selector permite elegir **Automático** (el modelo propio, y el agente solo cuando no está
+  seguro), **Solo modelo propio** o **Groq** (el agente responde todo).
+- **Seguimiento:** el agente recibe los últimos turnos de la conversación, así entiende preguntas como "¿y en Ovalle?".
+- **Seguridad y costos:** la clave vive solo en el servidor (`src/app/api/asistente/route.ts`). Hay un límite de 8
+  preguntas cada 10 minutos por visitante. Si falta la clave, se agota la cuota o Groq tarda, responde el modelo propio
+  y lo avisa.
+- **Para activarlo:** crea una clave en console.groq.com (plan gratuito, sin tarjeta) y agrega `GROQ_API_KEY` en las
+  variables de entorno de Vercel, marcada como Sensitive. Con `GROQ_MODEL` se cambia el modelo (por defecto
+  `openai/gpt-oss-20b`).
 
 ## Arquitectura
 
@@ -141,13 +150,13 @@ flowchart LR
 
 ## Calidad
 
-- **91 tests unitarios (Vitest)** sobre la lógica de negocio: share, puestos con empate, Muebles como DC + Display Zone,
+- **93 tests unitarios (Vitest)** sobre la lógica de negocio: share, puestos con empate, Muebles como DC + Display Zone,
   comparación de cortes, Foto del Éxito, datos de la demo y el asistente (entidades de las 49 preguntas anotadas,
-  exactitud mínima del motor y que sus números coincidan con los del dashboard) y el respaldo con LLM con una red
-  simulada (clave solo en el encabezado, argumentos inválidos descartados, límite de uso y demora).
-- **29 pruebas de extremo a extremo (Playwright)** en escritorio y celular: filtros, orden y búsqueda, tema recordado,
-  comparación de cortes, descargas de Excel, ida y vuelta del Excel en Admin, conversación con el asistente y su respaldo con LLM (que solo se llame cuando el
-  modelo propio no está seguro).
+  exactitud mínima del motor y que sus números coincidan con los del dashboard) y el agente con una red simulada
+  (rondas de consultas, verificador de cifras, contexto de conversación, límite de uso y demora).
+- **31 pruebas de extremo a extremo (Playwright)** en escritorio y celular: filtros, orden y búsqueda, tema recordado,
+  comparación de cortes, descargas de Excel, ida y vuelta del Excel en Admin, conversación con el asistente y con el agente (modos, contexto
+  y caída al modelo propio si Groq falla).
 - **Accesibilidad WCAG 2.1 AA** revisada con axe en las 6 pantallas y en ambos temas, sin problemas graves.
   La primera auditoría encontró más de 200 elementos con contraste insuficiente; se corrigieron en las variables de color del tema.
 - **Lighthouse** (compilación de producción, emulación de celular): Rendimiento 96 a 100, Accesibilidad 100,
@@ -213,7 +222,8 @@ dashboard that tracks the brand's in-store display share against 9 competitors a
 of every survey upload, logs the field team's store visits and incentives, and collects a weekly compliance checklist
 that store promoters fill in from their phones. It also includes a natural-language assistant built from scratch (entity
 extraction plus a TF-IDF and logistic-regression intent classifier trained without ML libraries, about 95% accuracy on
-hand-written questions) that runs entirely in the browser. Stack: Next.js 15, React 19, TypeScript, Supabase (PostgreSQL with
+hand-written questions) that runs entirely in the browser, plus an optional LLM agent on Groq that answers open-ended questions by calling
+the app's data tools and verifying every figure it cites. Stack: Next.js 15, React 19, TypeScript, Supabase (PostgreSQL with
 Row Level Security), Vercel. This public repository runs in demo mode with fictional data.
 
 ## Autor
