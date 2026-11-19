@@ -23,6 +23,8 @@ jobs:
         run: npm run typecheck
       - name: Lint
         run: npm run lint
+      - name: Sin simbolos Unicode
+        run: npm run lint:unicode
       - name: Tests
         run: npm test
       - name: Build

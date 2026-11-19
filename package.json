@@ -12,7 +12,8 @@
     "test": "vitest run",
     "seed:demo": "tsx scripts/generar-seed.ts",
     "test:e2e": "playwright test",
-    "asistente:entrenar": "tsx scripts/entrenar-asistente.ts"
+    "asistente:entrenar": "tsx scripts/entrenar-asistente.ts",
+    "lint:unicode": "node scripts/revisar-unicode.mjs"
   },
   "dependencies": {
     "@supabase/ssr": "0.12.7",

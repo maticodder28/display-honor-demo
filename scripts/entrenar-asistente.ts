@@ -203,7 +203,7 @@ for (const [clase, plantillas] of Object.entries(PLANTILLAS) as [Intencion, stri
     for (let k = 0; k < POR_PLANTILLA; k++) {
       let texto = expandir(`${PRE}${p}${POST}`);
       if (azar() < 0.15) texto = tipeo(texto);
-      if (azar() < 0.3) texto = texto.normalize('NFD').replace(/[̀-ͯ]/g, '');
+      if (azar() < 0.3) texto = texto.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
       if (!vistos.has(texto)) { vistos.add(texto); ejemplos.push({ texto, clase }); }
     }
 }
