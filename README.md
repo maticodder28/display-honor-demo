@@ -9,7 +9,7 @@ registra **lo que el equipo hace en terreno** y recibe el **checklist semanal** 
 ![TypeScript](https://img.shields.io/badge/TypeScript-strict-3178c6)
 ![Supabase](https://img.shields.io/badge/Supabase-PostgreSQL%20%2B%20RLS-3ecf8e)
 
-**Demo en vivo:** _pendiente de publicar_ (modo demo con datos ficticios, sin login)
+**Demo en vivo:** [display-honor-demo.vercel.app](https://display-honor-demo.vercel.app) (datos ficticios, sin login)
 
 ![Dashboard](docs/capturas/dashboard.png)
 
