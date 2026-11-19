@@ -7,6 +7,7 @@ const PAGINAS = [
   ['Bitácora', '/bitacora'],
   ['Foto del Éxito', '/foto'],
   ['Admin', '/admin'],
+  ['Asistente', '/asistente'],
 ] as const;
 
 for (const tema of ['oscuro', 'claro'] as const) {

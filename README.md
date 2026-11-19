@@ -38,6 +38,7 @@ responder preguntas como:
 | **Bitácora** | Registro de visitas, ventas por ejecutivo, incentivos con costo, capacitaciones y pendientes. Ranking mensual de ejecutivos y reporte mensual en Excel con 6 hojas. |
 | **Foto del Éxito** | Checklist semanal que cada promotor llena desde el celular. Cumplimiento por cluster de tienda (K, A, B, C) y exportación en el formato que pide el cliente. |
 | **Admin** | Carga del Excel de levantamiento con validación antes de publicar (hojas, marcas, códigos desconocidos, valores negativos o no numéricos). |
+| **Asistente** | Preguntas en lenguaje natural ("¿en qué tiendas de Ovalle está más débil Honor?") respondidas con los datos, con un motor de NLP propio que corre en el navegador. |
 
 | Historial | Bitácora |
 |---|---|
@@ -46,6 +47,42 @@ responder preguntas como:
 | Foto del Éxito | Celular |
 |---|---|
 | ![Foto del Éxito](docs/capturas/foto.png) | <img src="docs/capturas/movil.png" alt="Vista en celular" width="260"> |
+
+## Asistente: NLP propio, sin servicios externos
+
+![Asistente](docs/capturas/asistente.png)
+
+El asistente no usa un modelo de lenguaje externo ni una API de pago. Es un pipeline propio que corre completo en el
+navegador:
+
+```
+pregunta -> extractor de entidades -> clasificador de intención -> herramienta -> respuesta con tabla o gráfico
+```
+
+1. **Extractor de entidades** (`src/lib/asistente/entidades.ts`). Encuentra tienda, ciudad, cliente, marca, métrica,
+   cobertura, cantidad y dirección comparando contra los valores reales de los datos, con distancia de edición para
+   tolerar errores de tipeo ("ovale", "falabela"). Reemplaza cada entidad por un marcador (`_ciudad_`), así el
+   clasificador aprende la forma de la pregunta y no nombres concretos.
+2. **Clasificador de intención** (`clasificador.ts`). TF-IDF sobre raíces y pares de raíces, más regresión logística
+   multinomial, entrenada con un script propio (descenso de gradiente con Adam y L2, sin librerías de ML). Distingue
+   10 intenciones, incluida "fuera de alcance". Bajo 45 % de confianza no adivina: pide reformular.
+3. **Herramientas** (`herramientas.ts`). Una función por intención, que calcula la respuesta con las mismas funciones
+   del Historial y el Display. **Ningún número se inventa.**
+4. **Transparencia.** Cada respuesta muestra "Cómo lo entendí": la intención, la confianza y las entidades detectadas.
+
+| Evaluación | Preguntas | Exactitud |
+|---|---:|---:|
+| Generadas, no vistas al entrenar | 440 | 98,6 % |
+| Escritas a mano, solo clasificador | 75 | 93,3 % |
+| **Escritas a mano, motor completo** | 75 | **96,0 %** |
+
+Las preguntas escritas a mano usan formas de preguntar que no están en las plantillas de entrenamiento. El detalle por
+intención, la matriz de confusión, los errores y cómo se llegó a estas cifras están en
+[docs/asistente-evaluacion.md](docs/asistente-evaluacion.md). Para reentrenar: `npm run asistente:entrenar`.
+
+**Por qué así y no con un LLM:** cuesta cero, nunca se cae por cuota, responde al instante y no puede inventar datos.
+La contra es que solo entiende las intenciones que se diseñaron. Las herramientas quedan listas para que, más adelante,
+un LLM con tool calling elija cuál usar sin cambiar cómo se calculan las respuestas.
 
 ## Arquitectura
 
@@ -88,11 +125,12 @@ flowchart LR
 
 ## Calidad
 
-- **26 tests unitarios (Vitest)** sobre la lógica de negocio: share, puestos con empate, Muebles como DC + Display Zone,
-  comparación de cortes, semanas y cumplimiento de la Foto del Éxito, y consistencia de los datos de la demo.
-- **22 pruebas de extremo a extremo (Playwright)** en escritorio y celular: filtros, orden y búsqueda, tema recordado,
-  comparación de cortes, descargas de Excel, ida y vuelta del Excel en Admin (descargar, volver a subir, validar y publicar).
-- **Accesibilidad WCAG 2.1 AA** revisada con axe en las 5 pantallas y en ambos temas, sin problemas graves.
+- **85 tests unitarios (Vitest)** sobre la lógica de negocio: share, puestos con empate, Muebles como DC + Display Zone,
+  comparación de cortes, Foto del Éxito, datos de la demo y el asistente (entidades de las 49 preguntas anotadas,
+  exactitud mínima del motor y que sus números coincidan con los del dashboard).
+- **27 pruebas de extremo a extremo (Playwright)** en escritorio y celular: filtros, orden y búsqueda, tema recordado,
+  comparación de cortes, descargas de Excel, ida y vuelta del Excel en Admin y conversación con el asistente.
+- **Accesibilidad WCAG 2.1 AA** revisada con axe en las 6 pantallas y en ambos temas, sin problemas graves.
   La primera auditoría encontró más de 200 elementos con contraste insuficiente; se corrigieron en las variables de color del tema.
 - **Lighthouse** (compilación de producción, emulación de celular): Rendimiento 96 a 100, Accesibilidad 100,
   Buenas prácticas 100 y SEO 100 en las 5 pantallas. Las librerías de Excel se cargan solo al usarlas, lo que bajó
@@ -122,6 +160,7 @@ Abre <http://localhost:3000>. Para instalar la versión completa con Supabase, l
 | `npm run lint` | ESLint |
 | `npm run build` | Compilación de producción |
 | `npm run seed:demo` | Regenera `supabase/seed.sql` con los datos ficticios de la demo |
+| `npm run asistente:entrenar` | Entrena el clasificador del asistente y regenera su reporte de evaluación |
 
 ## Estructura
 
@@ -137,6 +176,7 @@ src/
     reporteBitacora.ts  Reporte mensual de la Bitácora (ExcelJS)
     data.ts             Consultas a Supabase desde el servidor
     demo.ts             Datos ficticios del modo demo
+    asistente/          Motor del asistente: texto, entidades, clasificador, herramientas, modelo entrenado
     *.test.ts           Tests unitarios
 e2e/                    Pruebas de extremo a extremo y accesibilidad
 supabase/
@@ -145,6 +185,7 @@ supabase/
   seed.sql              Datos de ejemplo ficticios
 scripts/
   generar-seed.ts       Genera seed.sql desde los datos de la demo
+  entrenar-asistente.ts Entrena y evalúa el clasificador de intención
 ```
 
 ## English summary
@@ -152,7 +193,9 @@ scripts/
 A production web app I built for Honor's merchandising team in northern Chile. It replaced scattered spreadsheets with a
 dashboard that tracks the brand's in-store display share against 9 competitors across about 50 stores, keeps a full history
 of every survey upload, logs the field team's store visits and incentives, and collects a weekly compliance checklist
-that store promoters fill in from their phones. Stack: Next.js 15, React 19, TypeScript, Supabase (PostgreSQL with
+that store promoters fill in from their phones. It also includes a natural-language assistant built from scratch (entity
+extraction plus a TF-IDF and logistic-regression intent classifier trained without ML libraries, 96% accuracy on
+hand-written questions) that runs entirely in the browser. Stack: Next.js 15, React 19, TypeScript, Supabase (PostgreSQL with
 Row Level Security), Vercel. This public repository runs in demo mode with fictional data.
 
 ## Autor

@@ -10,7 +10,7 @@ interface Props {
   usuario: { nombre: string; esAdmin: boolean; cargo?: string | null; rol?: string | null };
   actualizado?: string | null;
   corte?: string | null;
-  vista: 'dashboard' | 'admin' | 'bitacora' | 'historial' | 'foto';
+  vista: 'dashboard' | 'admin' | 'bitacora' | 'historial' | 'foto' | 'asistente';
 }
 
 const ROL: Record<string, string> = { admin: 'Administrador', registro: 'Registro', viewer: 'Solo lectura', promotor: 'Promotor' };
@@ -65,6 +65,7 @@ export default function Nav({ usuario, actualizado, corte, vista }: Props) {
             <Link href="/historial" className={actual === 'historial' ? 'on' : undefined} aria-current={vista === 'historial' ? 'page' : undefined} onClick={ir('historial')}>Historial</Link>
             <Link href="/bitacora" className={actual === 'bitacora' ? 'on' : undefined} aria-current={vista === 'bitacora' ? 'page' : undefined} onClick={ir('bitacora')}>Bitácora</Link>
             <Link href="/foto" className={actual === 'foto' ? 'on' : undefined} aria-current={vista === 'foto' ? 'page' : undefined} onClick={ir('foto')}>Foto del Éxito</Link>
+            <Link href="/asistente" className={actual === 'asistente' ? 'on' : undefined} aria-current={vista === 'asistente' ? 'page' : undefined} onClick={ir('asistente')}>Asistente</Link>
           </div>
         )}
         <div className="nb-r">
@@ -117,6 +118,10 @@ export default function Nav({ usuario, actualizado, corte, vista }: Props) {
           <Link href="/foto" className={actual === 'foto' ? 'on' : undefined} aria-current={vista === 'foto' ? 'page' : undefined} onClick={ir('foto')}>
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 4.5h8v5a4 4 0 0 1-8 0zM8 6.5H5.5a2.5 2.5 0 0 0 2.6 3.4M16 6.5h2.5a2.5 2.5 0 0 1-2.6 3.4M12 13.5V17M8.5 19.5h7M10 17h4" /></svg>
             Éxito Entel
+          </Link>
+          <Link href="/asistente" className={actual === 'asistente' ? 'on' : undefined} aria-current={vista === 'asistente' ? 'page' : undefined} onClick={ir('asistente')}>
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 5.5h14a1.5 1.5 0 0 1 1.5 1.5v8a1.5 1.5 0 0 1-1.5 1.5h-7l-4.5 3.5V16.5H5A1.5 1.5 0 0 1 3.5 15V7A1.5 1.5 0 0 1 5 5.5zM8 10h8M8 13h5" /></svg>
+            Asistente
           </Link>
         </div>
       )}

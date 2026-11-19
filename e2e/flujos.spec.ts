@@ -98,3 +98,30 @@ test.describe('Admin', () => {
     await expect(page.getByText('Modo demo').first()).toBeVisible();
   });
 });
+
+test.describe('Asistente', () => {
+  test('responde una pregunta escrita con errores de tipeo', async ({ page }) => {
+    await page.goto('/asistente');
+    await page.getByLabel('Tu pregunta').fill('como andamos en ovale');
+    await page.getByRole('button', { name: 'Preguntar' }).click();
+    const respuesta = page.locator('.as-resp').last();
+    await expect(respuesta).toContainText('En Ovalle, Honor tiene');
+    await respuesta.getByText('Cómo lo entendí').click();
+    await expect(respuesta).toContainText('Share de Honor');
+  });
+
+  test('las preguntas sugeridas encadenan la conversación', async ({ page }) => {
+    await page.goto('/asistente');
+    await page.getByRole('button', { name: /En qué ciudad está mejor Honor/ }).click();
+    await expect(page.locator('.as-resp').last().getByRole('columnheader', { name: 'Ciudad' })).toBeVisible();
+    await page.locator('.as-sug button').first().click();
+    await expect(page.locator('.as-resp')).toHaveCount(2);
+  });
+
+  test('dice que no sabe en vez de inventar', async ({ page }) => {
+    await page.goto('/asistente');
+    await page.getByLabel('Tu pregunta').fill('cual es la capital de francia');
+    await page.keyboard.press('Enter');
+    await expect(page.locator('.as-resp').last()).toContainText('No estoy seguro de entender');
+  });
+});

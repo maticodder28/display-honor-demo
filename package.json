@@ -11,7 +11,8 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "seed:demo": "tsx scripts/generar-seed.ts",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "asistente:entrenar": "tsx scripts/entrenar-asistente.ts"
   },
   "dependencies": {
     "@supabase/ssr": "0.12.7",
