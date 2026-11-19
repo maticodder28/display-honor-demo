@@ -80,9 +80,22 @@ Las preguntas escritas a mano usan formas de preguntar que no están en las plan
 intención, la matriz de confusión, los errores y cómo se llegó a estas cifras están en
 [docs/asistente-evaluacion.md](docs/asistente-evaluacion.md). Para reentrenar: `npm run asistente:entrenar`.
 
-**Por qué así y no con un LLM:** cuesta cero, nunca se cae por cuota, responde al instante y no puede inventar datos.
-La contra es que solo entiende las intenciones que se diseñaron. Las herramientas quedan listas para que, más adelante,
-un LLM con tool calling elija cuál usar sin cambiar cómo se calculan las respuestas.
+**Por qué el motor propio primero:** cuesta cero, nunca se cae por cuota, responde al instante y no puede inventar
+datos. La contra es que solo entiende las intenciones que se diseñaron.
+
+### Respaldo opcional con un LLM (Groq)
+
+Cuando el motor propio no está seguro (confianza bajo 45 %), la pregunta se envía a una ruta del servidor
+(`src/app/api/asistente/route.ts`) que consulta un modelo en [Groq](https://console.groq.com) con **tool calling**:
+
+- El LLM **no redacta la respuesta**: solo elige una de las mismas herramientas y sus filtros. Los argumentos se validan
+  contra los datos reales (una ciudad inexistente se descarta) y la respuesta la calcula el mismo código de siempre.
+- La clave vive solo en el servidor. Si falta, se agota la cuota o Groq tarda más de 8 segundos, el asistente sigue
+  funcionando con el motor propio.
+- Hay un límite de preguntas por visitante, y el panel "Cómo lo entendí" indica si respondió el modelo propio o el LLM.
+- Para activarlo: crea una clave en console.groq.com (plan gratuito, sin tarjeta) y agrega `GROQ_API_KEY` en las
+  variables de entorno de Vercel, marcada como Sensitive. Con `GROQ_MODEL` se puede cambiar el modelo
+  (por defecto `openai/gpt-oss-20b`).
 
 ## Arquitectura
 
@@ -125,11 +138,13 @@ flowchart LR
 
 ## Calidad
 
-- **85 tests unitarios (Vitest)** sobre la lógica de negocio: share, puestos con empate, Muebles como DC + Display Zone,
+- **91 tests unitarios (Vitest)** sobre la lógica de negocio: share, puestos con empate, Muebles como DC + Display Zone,
   comparación de cortes, Foto del Éxito, datos de la demo y el asistente (entidades de las 49 preguntas anotadas,
-  exactitud mínima del motor y que sus números coincidan con los del dashboard).
-- **27 pruebas de extremo a extremo (Playwright)** en escritorio y celular: filtros, orden y búsqueda, tema recordado,
-  comparación de cortes, descargas de Excel, ida y vuelta del Excel en Admin y conversación con el asistente.
+  exactitud mínima del motor y que sus números coincidan con los del dashboard) y el respaldo con LLM con una red
+  simulada (clave solo en el encabezado, argumentos inválidos descartados, límite de uso y demora).
+- **29 pruebas de extremo a extremo (Playwright)** en escritorio y celular: filtros, orden y búsqueda, tema recordado,
+  comparación de cortes, descargas de Excel, ida y vuelta del Excel en Admin, conversación con el asistente y su respaldo con LLM (que solo se llame cuando el
+  modelo propio no está seguro).
 - **Accesibilidad WCAG 2.1 AA** revisada con axe en las 6 pantallas y en ambos temas, sin problemas graves.
   La primera auditoría encontró más de 200 elementos con contraste insuficiente; se corrigieron en las variables de color del tema.
 - **Lighthouse** (compilación de producción, emulación de celular): Rendimiento 96 a 100, Accesibilidad 100,

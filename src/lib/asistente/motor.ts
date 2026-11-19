@@ -21,6 +21,8 @@ export interface Resultado {
   entidades: Entidades;
   /** Si la intencion la decidio una regla y no el clasificador. */
   regla: string | null;
+  /** Quien resolvio la pregunta: el motor propio o un modelo externo (ej. "Groq openai/gpt-oss-20b"). */
+  origen: 'propio' | string;
   respuesta: H.Respuesta;
 }
 
@@ -51,6 +53,24 @@ function pideGrupos(pregunta: string, datos: Historial): boolean {
     || nombrados(pregunta, [...new Set(datos.tiendas.map((t) => t.ciudad))]) > 1;
 }
 
+/** Ejecuta la herramienta de una intencion. La usan el motor propio y la ruta que consulta a Groq. */
+export function ejecutar(intencion: Intencion, e: Entidades, datos: Historial, pregunta: string, dim?: H.Dimension): H.Respuesta {
+  if (!datos.cortes.length && intencion !== 'ayuda' && intencion !== 'fuera')
+    return { texto: 'Aún no hay datos cargados: cuando se publique el primer Excel podré responder.', sugerencias: [] };
+  switch (intencion) {
+    case 'resumen': return H.resumen(datos, e);
+    case 'lider': return H.lider(datos, e);
+    case 'ranking_tiendas': return H.rankingTiendas(datos, e);
+    case 'tendencia': return H.tendencia(datos, e);
+    case 'cambios_tiendas': return H.cambiosTiendas(datos, e);
+    case 'por_grupo': return H.porGrupo(datos, e, dim ?? dimension(pregunta, e, datos));
+    case 'detalle_tienda': return H.detalleTienda(datos, e);
+    case 'sin_levantamiento': return H.sinLevantamiento(datos, e);
+    case 'ayuda': return H.ayuda();
+    default: return H.noEntendi();
+  }
+}
+
 export function crearMotor(modelo: Modelo, datos: Historial) {
   const clasificar = crearClasificador(modelo);
   const catalogo = { tiendas: datos.tiendas, marcas: [...new Set(datos.cortes.flatMap((c) => c.marcas))] };
@@ -68,23 +88,7 @@ export function crearMotor(modelo: Modelo, datos: Historial) {
     // Si nombra una tienda puntual y pregunta por share o lider, la respuesta util es el detalle de esa tienda.
     else if ((e.tienda || e.tiendasPosibles.length) && (intencion === 'resumen' || intencion === 'lider')) { intencion = 'detalle_tienda'; regla = 'tienda mencionada'; }
 
-    if (!datos.cortes.length) {
-      return { pregunta, intencion, confianza: pred.confianza, alternativas: pred.ranking.slice(0, 3), entidades: e, regla,
-        respuesta: { texto: 'Aún no hay datos cargados: cuando se publique el primer Excel podré responder.', sugerencias: [] } };
-    }
-
-    const respuesta: H.Respuesta =
-      intencion === 'resumen' ? H.resumen(datos, e)
-      : intencion === 'lider' ? H.lider(datos, e)
-      : intencion === 'ranking_tiendas' ? H.rankingTiendas(datos, e)
-      : intencion === 'tendencia' ? H.tendencia(datos, e)
-      : intencion === 'cambios_tiendas' ? H.cambiosTiendas(datos, e)
-      : intencion === 'por_grupo' ? H.porGrupo(datos, e, dimension(pregunta, e, datos))
-      : intencion === 'detalle_tienda' ? H.detalleTienda(datos, e)
-      : intencion === 'sin_levantamiento' ? H.sinLevantamiento(datos, e)
-      : intencion === 'ayuda' ? H.ayuda()
-      : H.noEntendi();
-
-    return { pregunta, intencion, confianza: pred.confianza, alternativas: pred.ranking.slice(0, 3), entidades: e, regla, respuesta };
+    const respuesta = ejecutar(intencion, e, datos, pregunta);
+    return { pregunta, intencion, confianza: pred.confianza, alternativas: pred.ranking.slice(0, 3), entidades: e, regla, origen: 'propio', respuesta };
   };
 }

@@ -125,3 +125,45 @@ test.describe('Asistente', () => {
     await expect(page.locator('.as-resp').last()).toContainText('No estoy seguro de entender');
   });
 });
+
+test.describe('Asistente con respaldo LLM', () => {
+  test('consulta a Groq solo cuando el modelo propio no está seguro', async ({ page }) => {
+    let consultas = 0;
+    await page.route('/api/asistente', async (route) => {
+      if (route.request().method() === 'GET') return route.fulfill({ json: { disponible: true, modelo: 'modelo-de-prueba' } });
+      consultas++;
+      const pregunta = route.request().postDataJSON().pregunta;
+      // Respuesta armada como la devolveria el servidor tras ejecutar la herramienta elegida.
+      return route.fulfill({ json: { resultado: {
+        pregunta, intencion: 'tendencia', confianza: 1, alternativas: [], regla: null, origen: 'Groq (modelo-de-prueba)',
+        entidades: { metrica: null, ciudad: null, cliente: null, cobertura: null, marca: null, tienda: null, tiendasPosibles: [], n: null, direccion: null },
+        respuesta: { texto: 'Respuesta calculada por la herramienta de tendencia.', sugerencias: [] },
+      } } });
+    });
+    await page.goto('/asistente');
+    await expect(page.getByText(/Respaldo con LLM activo/)).toBeVisible();
+
+    // Una pregunta clara la responde el modelo propio, sin llamar al LLM.
+    await page.getByLabel('Tu pregunta').fill('como andamos en coquimbo');
+    await page.keyboard.press('Enter');
+    await expect(page.locator('.as-resp').last()).toContainText('En Coquimbo, Honor tiene');
+    expect(consultas).toBe(0);
+
+    // Una pregunta ambigua pasa al respaldo.
+    await page.getByLabel('Tu pregunta').fill('vamos para arriba o para abajo?');
+    await page.keyboard.press('Enter');
+    const ultima = page.locator('.as-resp').last();
+    await expect(ultima).toContainText('Respuesta calculada por la herramienta de tendencia.');
+    await ultima.getByText('Cómo lo entendí').click();
+    await expect(ultima).toContainText('Groq (modelo-de-prueba)');
+    expect(consultas).toBe(1);
+  });
+
+  test('sin clave configurada todo funciona con el modelo propio', async ({ page }) => {
+    await page.goto('/asistente');
+    await expect(page.getByText(/Respaldo con LLM desactivado/)).toBeVisible();
+    await page.getByLabel('Tu pregunta').fill('vamos para arriba o para abajo?');
+    await page.keyboard.press('Enter');
+    await expect(page.locator('.as-resp').last()).toContainText('No estoy seguro de entender');
+  });
+});

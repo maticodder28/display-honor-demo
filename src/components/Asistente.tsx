@@ -53,11 +53,15 @@ function Entendi({ r }: { r: Resultado }) {
       <div className="as-ent-c">
         <p>
           Intención: <b>{nombre(r.intencion)}</b>
-          {r.regla ? <> (regla: {r.regla})</> : <> con {Math.round(r.confianza * 100)}% de confianza</>}
+          {r.origen !== 'propio' ? <> elegida por <b>{r.origen}</b></> : r.regla ? <> (regla: {r.regla})</> : <> con {Math.round(r.confianza * 100)}% de confianza</>}
         </p>
-        <p className="s-mut">
-          Alternativas: {r.alternativas.map((a) => `${nombre(a.clase)} ${Math.round(a.p * 100)}%`).join(' | ')}
-        </p>
+        {r.origen === 'propio' ? (
+          <p className="s-mut">
+            Resuelta por el modelo propio. Alternativas: {r.alternativas.map((a) => `${nombre(a.clase)} ${Math.round(a.p * 100)}%`).join(' | ')}
+          </p>
+        ) : (
+          <p className="s-mut">El modelo propio no estaba seguro; el LLM solo eligió la herramienta y los filtros. Los números los calcula la app.</p>
+        )}
         {chips.length ? (
           <ul className="as-chips">{chips.map(([k, v]) => <li key={k}><span>{k}</span>{v}</li>)}</ul>
         ) : <p className="s-mut">Sin filtros: toda la zona, métrica exhibiciones.</p>}
@@ -66,12 +70,30 @@ function Entendi({ r }: { r: Resultado }) {
   );
 }
 
-function Mensaje({ r }: { r: Resultado }) {
+interface Item { id: number; r: Resultado; consultando?: boolean; aviso?: string }
+
+const AVISOS: Record<string, string> = {
+  limite: 'El respaldo con Groq llegó a su límite de uso por ahora.',
+  tiempo: 'Groq tardó demasiado en responder.',
+  sin_clave: '',
+};
+
+function Mensaje({ item }: { item: Item }) {
+  const { r } = item;
   const t = r.respuesta.tabla;
+  if (item.consultando) {
+    return (
+      <article className="as-msg">
+        <p className="as-yo">{r.pregunta}</p>
+        <div className="card as-resp" aria-busy="true"><p className="as-txt s-mut">El modelo propio no está seguro: consultando a Groq...</p></div>
+      </article>
+    );
+  }
   return (
     <article className="as-msg">
       <p className="as-yo">{r.pregunta}</p>
       <div className="card as-resp">
+        {item.aviso && <p className="as-txt s-mut">{item.aviso}</p>}
         <p className="as-txt"><Rico texto={r.respuesta.texto} /></p>
         {r.respuesta.serie && <MiniGrafico serie={r.respuesta.serie} />}
         {t && (
@@ -94,23 +116,42 @@ function Mensaje({ r }: { r: Resultado }) {
 
 export default function Asistente({ datos }: { datos: Historial }) {
   const responder = useMemo(() => crearMotor(modelo as Modelo, datos), [datos]);
-  const [conversacion, setConversacion] = useState<Resultado[]>([]);
+  const [conversacion, setConversacion] = useState<Item[]>([]);
+  const [llm, setLlm] = useState<{ disponible: boolean; modelo: string } | null>(null);
+
+  useEffect(() => {
+    fetch('/api/asistente').then((r) => (r.ok ? r.json() : null)).then(setLlm).catch(() => setLlm(null));
+  }, []);
   const [texto, setTexto] = useState('');
   const fin = useRef<HTMLDivElement>(null);
   const entrada = useRef<HTMLInputElement>(null);
 
   useEffect(() => { if (conversacion.length) fin.current?.scrollIntoView({ behavior: 'smooth', block: 'end' }); }, [conversacion.length]);
 
-  const preguntar = (q: string) => {
+  const preguntar = async (q: string) => {
     const p = q.trim();
     if (!p) return;
-    setConversacion((c) => [...c, responder(p)].slice(-30));
+    const local = responder(p);
+    // Solo se consulta al LLM cuando el modelo propio no esta seguro: ahorra cuota y responde al instante.
+    const usarLLM = llm?.disponible && local.regla === 'confianza baja';
+    const id = Date.now() + Math.random();
+    setConversacion((c) => [...c, { id, r: local, consultando: !!usarLLM }].slice(-30));
     setTexto('');
     entrada.current?.focus();
+    if (!usarLLM) return;
+    let item: Item = { id, r: local };
+    try {
+      const res = await fetch('/api/asistente', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ pregunta: p }) });
+      const json = await res.json();
+      item = json.resultado ? { id, r: json.resultado as Resultado } : { id, r: local, aviso: AVISOS[json.fallo] || 'El respaldo con Groq no está disponible en este momento.' };
+    } catch {
+      item = { id, r: local, aviso: 'El respaldo con Groq no está disponible en este momento.' };
+    }
+    setConversacion((c) => c.map((x) => (x.id === id ? item : x)));
   };
 
   const ultima = conversacion[conversacion.length - 1];
-  const sugerencias = ultima ? ultima.respuesta.sugerencias : PREGUNTAS_EJEMPLO;
+  const sugerencias = ultima && !ultima.consultando ? ultima.r.respuesta.sugerencias : PREGUNTAS_EJEMPLO;
 
   return (
     <div className="as">
@@ -120,6 +161,11 @@ export default function Asistente({ datos }: { datos: Historial }) {
           <p className="sub">
             Pregúntale a los datos del Display en lenguaje natural. Funciona sin servicios externos: un clasificador
             propio y un extractor de entidades corren en tu navegador, y cada número sale de los mismos cálculos del dashboard.
+          </p>
+          <p className="sub">
+            {llm?.disponible
+              ? <>Respaldo con LLM activo ({llm.modelo} en Groq): solo cuando el modelo propio no entiende una pregunta, esa pregunta se envía a Groq para elegir la herramienta.</>
+              : <>Respaldo con LLM desactivado: todo se resuelve con el modelo propio.</>}
           </p>
         </div>
         {conversacion.length > 0 && <button type="button" className="ibtn" onClick={() => setConversacion([])}>Nueva conversación</button>}
@@ -132,7 +178,7 @@ export default function Asistente({ datos }: { datos: Historial }) {
             <p className="s-mut">Puedes filtrar por ciudad, cliente, cobertura, métrica o marca, y escribir como te salga: entiende errores de tipeo.</p>
           </section>
         )}
-        {conversacion.map((r, i) => <Mensaje key={i} r={r} />)}
+        {conversacion.map((item) => <Mensaje key={item.id} item={item} />)}
         <div ref={fin} />
       </div>
 
