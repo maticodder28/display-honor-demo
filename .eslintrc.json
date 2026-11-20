@@ -1,3 +1,91 @@
 {
-  "extends": "next/core-web-vitals"
+  "extends": "next/core-web-vitals",
+  "overrides": [
+    {
+      "files": [
+        "src/dominio/**"
+      ],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "patterns": [
+              {
+                "group": [
+                  "@/aplicacion/*",
+                  "@/infraestructura/*",
+                  "@/presentacion/*",
+                  "@/app/*",
+                  "@/config",
+                  "react",
+                  "next/*",
+                  "@supabase/*",
+                  "xlsx",
+                  "exceljs"
+                ],
+                "message": "El dominio no depende de nada externo: solo TypeScript puro."
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "files": [
+        "src/aplicacion/**"
+      ],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "patterns": [
+              {
+                "group": [
+                  "@/infraestructura/*",
+                  "@/presentacion/*",
+                  "@/app/*",
+                  "react",
+                  "next/*",
+                  "@supabase/*"
+                ],
+                "message": "Los casos de uso hablan con el exterior solo a través de los puertos (aplicacion/puertos.ts)."
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "files": [
+        "src/presentacion/componentes/**"
+      ],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "patterns": [
+              {
+                "group": [
+                  "@/infraestructura/supabase/*",
+                  "@/infraestructura/demo/*",
+                  "@/infraestructura/groq/*",
+                  "@/infraestructura/contenedor",
+                  "@supabase/*"
+                ],
+                "message": "La interfaz no habla con la base: usa una server action de presentacion/acciones."
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "files": [
+        "src/**/*.test.ts"
+      ],
+      "rules": {
+        "no-restricted-imports": "off"
+      }
+    }
+  ]
 }

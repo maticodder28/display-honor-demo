@@ -71,14 +71,17 @@ región que la base de datos. Las decisiones que más me importaron:
   tiene nada en esa tienda. Si los mezclara, las tiendas no visitadas bajarían el share.
 - Las prioridades de la Foto del Éxito se guardan semana a semana, y un producto ya usado no se puede borrar, solo
   ocultar. Así, cambiar la lista del mes no altera las semanas pasadas.
-- Los cálculos (share, puestos con empate, cortes) son funciones puras con tests, separadas de la interfaz.
+- El código está ordenado con Clean Architecture: dominio (reglas puras), casos de uso, infraestructura (Supabase,
+  demo, Groq) y presentación. La interfaz nunca habla con la base: escribe con server actions que pasan por un caso de
+  uso, y el lint falla si alguien rompe esa regla. La demo no es un `if` repartido por el código, es otra
+  implementación de los mismos repositorios. El detalle, con cómo aplico SOLID, está en [CODIGO.md](docs/CODIGO.md).
 - Las librerías de Excel se cargan solo cuando se usan. Eso bajó el JavaScript inicial del Historial de 259 a 116 KB.
 
 Para el detalle del código, archivo por archivo, está [docs/CODIGO.md](docs/CODIGO.md).
 
 ## Calidad
 
-- 94 tests unitarios con Vitest y 31 pruebas de navegador con Playwright, en escritorio y celular.
+- 120 tests unitarios con Vitest (reglas del negocio y casos de uso con repositorios falsos) y 31 pruebas de navegador con Playwright, en escritorio y celular.
 - Accesibilidad WCAG 2.1 AA revisada con axe en las 6 pantallas y en los dos temas. La primera revisión encontró más
   de 200 elementos con poco contraste y los corregí en las variables de color.
 - Lighthouse en la compilación de producción: rendimiento entre 96 y 100, y 100 en accesibilidad, buenas prácticas
@@ -115,7 +118,8 @@ spreadsheets with a dashboard that tracks the brand's in-store display share aga
 stores, keeps a history of every survey upload, logs the team's store visits and incentives, and collects a weekly
 checklist that promoters fill in from their phones. It also has a natural-language assistant: an intent classifier
 and entity extractor I trained from scratch that runs in the browser, plus an optional LLM agent on Groq that answers
-open questions by calling the app's data tools and checks every figure it cites. Next.js 15, TypeScript, Supabase
+open questions by calling the app's data tools and checks every figure it cites. The code follows Clean
+Architecture (domain, use cases, infrastructure, presentation), with the dependency rule enforced by ESLint. Next.js 15, TypeScript, Supabase
 (PostgreSQL with Row Level Security) and Vercel. This public version runs on demo data.
 
 ## Autor

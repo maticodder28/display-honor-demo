@@ -6,8 +6,8 @@
  * la version con Supabase y ver el dashboard con informacion de ejemplo.
  */
 import { writeFileSync } from 'node:fs';
-import { fotoDemo, historialDemo, MARCAS_DEMO } from '../src/lib/demo';
-import { METRICAS_DATOS } from '../src/lib/types';
+import { fotoDemo, historialDemo, MARCAS_DEMO } from '../src/infraestructura/demo/datos';
+import { METRICAS_DATOS } from '../src/dominio/display/modelo';
 
 const q = (s: string | null | undefined) => (s == null ? 'null' : `'${s.replace(/'/g, "''")}'`);
 const zona = "(select id from public.zonas where nombre = 'Norte')";

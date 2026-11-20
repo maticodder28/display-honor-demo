@@ -1,4 +1,4 @@
-import { iniciarSesion } from './actions';
+import { iniciarSesion } from '@/presentacion/acciones/sesion';
 
 export const metadata = { title: 'Ingresar | Display Honor' };
 

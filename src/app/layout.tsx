@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import { JetBrains_Mono, Manrope } from 'next/font/google';
-import Progreso from '@/components/Progreso';
-import { DEMO } from '@/lib/modo';
+import Progreso from '@/presentacion/componentes/comun/Progreso';
+import { DEMO } from '@/config';
 import './globals.css';
 
 const sans = Manrope({ subsets: ['latin'], weight: ['500', '600', '700', '800'], variable: '--font-sans' });
@@ -10,7 +10,7 @@ const mono = JetBrains_Mono({ subsets: ['latin'], weight: ['500'], variable: '--
 export const metadata: Metadata = {
   title: 'Dashboard de Área Display | Honor',
   description: 'Share de exhibiciones, muebles y promotores de Honor por tienda.',
-  // La version real es interna; la demo publica si se puede indexar.
+  // La app del equipo es interna y no se indexa; la demo pública sí, para que se pueda encontrar.
   robots: DEMO ? { index: true, follow: true } : { index: false, follow: false },
 };
 

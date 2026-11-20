@@ -1,17 +1,14 @@
-import { redirect } from 'next/navigation';
-import Historial from '@/components/Historial';
-import Nav from '@/components/Nav';
-import { obtenerHistorial, usuarioActual, enParalelo } from '@/lib/data';
+import Historial from '@/presentacion/componentes/display/Historial';
+import Nav from '@/presentacion/componentes/comun/Nav';
+import { contenedor } from '@/infraestructura/contenedor';
+import { exigirAcceso } from '@/presentacion/acceso';
 
 export const dynamic = 'force-dynamic';
 export const metadata = { title: 'Historial | Display Honor' };
 
 export default async function HistorialPage() {
-  const pedido = enParalelo(obtenerHistorial());
-  const usuario = await usuarioActual();
-  if (!usuario) redirect('/login?next=/historial');
-  if (usuario.esPromotor) redirect('/foto');
-  const datos = await pedido;
+  const app = contenedor();
+  const { usuario, datos } = exigirAcceso(await app.cargarVista('historial', app.display.historial), '/historial');
   return (
     <>
       <Nav usuario={usuario} vista="historial" />

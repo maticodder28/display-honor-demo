@@ -1,29 +1,21 @@
-import { redirect } from 'next/navigation';
-import Bitacora from '@/components/Bitacora';
-import Nav from '@/components/Nav';
-import { obtenerBitacora, usuarioActual, enParalelo } from '@/lib/data';
+import Bitacora from '@/presentacion/componentes/bitacora/Bitacora';
+import Nav from '@/presentacion/componentes/comun/Nav';
+import { hoyEnChile } from '@/dominio/comun/fechas';
+import { contenedor } from '@/infraestructura/contenedor';
+import { exigirAcceso } from '@/presentacion/acceso';
 
 export const dynamic = 'force-dynamic';
 export const metadata = { title: 'Bitácora | Display Honor' };
 
-/** Fecha de hoy en Chile (YYYY-MM-DD), calculada en el servidor para que cliente y servidor coincidan. */
-const hoyChile = () => new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Santiago' }).format(new Date());
-
 export default async function BitacoraPage() {
-  const pedido = enParalelo(obtenerBitacora());
-  const usuario = await usuarioActual();
-  if (!usuario) redirect('/login?next=/bitacora');
-  if (usuario.esPromotor) redirect('/foto');
-  const datos = await pedido;
+  const app = contenedor();
+  const { usuario, datos } = exigirAcceso(await app.cargarVista('bitacora', app.bitacora.datos), '/bitacora');
   return (
     <>
       <Nav usuario={usuario} vista="bitacora" />
       <main className="wrap">
-        <Bitacora
-          hoy={hoyChile()}
-          usuario={{ id: usuario.id, nombre: usuario.nombre, puedeRegistrar: usuario.puedeRegistrar, esAdmin: usuario.esAdmin }}
-          {...datos}
-        />
+        {/* "Hoy" lo calcula el servidor, así el navegador y el servidor no discrepan cerca de medianoche. */}
+        <Bitacora hoy={hoyEnChile()} usuario={usuario} {...datos} />
       </main>
     </>
   );

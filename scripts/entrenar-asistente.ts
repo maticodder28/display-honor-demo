@@ -9,12 +9,12 @@
  * 5. Guarda el modelo en src/lib/asistente/modelo.json y el reporte en docs/asistente-evaluacion.md.
  */
 import { writeFileSync } from 'node:fs';
-import { UMBRAL, caracteristicas, indexador, puntajes, softmax, vectorizar, type Modelo } from '../src/lib/asistente/clasificador';
-import { extraer, type Catalogo } from '../src/lib/asistente/entidades';
-import { PREGUNTAS_EVALUACION } from '../src/lib/asistente/evaluacion';
-import { INTENCIONES, type Intencion } from '../src/lib/asistente/intenciones';
-import { MARCAS_DEMO, historialDemo, tiendasDemo } from '../src/lib/demo';
-import { crearMotor } from '../src/lib/asistente/motor';
+import { UMBRAL, caracteristicas, indexador, puntajes, softmax, vectorizar, type Modelo } from '../src/dominio/asistente/clasificador';
+import { extraer, type Catalogo } from '../src/dominio/asistente/entidades';
+import { PREGUNTAS_EVALUACION } from '../src/dominio/asistente/evaluacion';
+import { INTENCIONES, type Intencion } from '../src/dominio/asistente/intenciones';
+import { MARCAS_DEMO, historialDemo, tiendasDemo } from '../src/infraestructura/demo/datos';
+import { crearMotor } from '../src/dominio/asistente/motor';
 
 // ---------------------------------------------------------------------
 // Azar con semilla, para que el entrenamiento sea reproducible

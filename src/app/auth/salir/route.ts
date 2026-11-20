@@ -1,10 +1,9 @@
 import { NextResponse, type NextRequest } from 'next/server';
-import { DEMO } from '@/lib/modo';
-import { createClient } from '@/lib/supabase/server';
+import { DEMO } from '@/config';
+import { contenedor } from '@/infraestructura/contenedor';
 
 export async function POST(request: NextRequest) {
-  if (DEMO) return NextResponse.redirect(new URL('/', request.url), { status: 303 });
-  const supabase = await createClient();
-  await supabase.auth.signOut();
-  return NextResponse.redirect(new URL('/login', request.url), { status: 303 });
+  await contenedor().sesion.cerrar();
+  // En la demo no hay login: cerrar sesión solo vuelve al inicio.
+  return NextResponse.redirect(new URL(DEMO ? '/' : '/login', request.url), { status: 303 });
 }

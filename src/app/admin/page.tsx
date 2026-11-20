@@ -1,15 +1,16 @@
 import Link from 'next/link';
-import { redirect } from 'next/navigation';
-import AdminPanel from '@/components/AdminPanel';
-import Nav from '@/components/Nav';
-import { ZONA, fechasCorte, historialCargas, obtenerDatos, usuarioActual } from '@/lib/data';
+import { ZONA } from '@/config';
+import AdminPanel from '@/presentacion/componentes/admin/AdminPanel';
+import Nav from '@/presentacion/componentes/comun/Nav';
+import { contenedor } from '@/infraestructura/contenedor';
+import { exigirAcceso } from '@/presentacion/acceso';
 
 export const dynamic = 'force-dynamic';
 
 export default async function Admin() {
-  const usuario = await usuarioActual();
-  if (!usuario) redirect('/login?next=/admin');
-  if (usuario.esPromotor) redirect('/foto');
+  const app = contenedor();
+  // Primero la sesión: los datos de Admin solo se piden si el usuario es admin.
+  const { usuario } = exigirAcceso(await app.cargarVista('admin', async () => null), '/admin');
 
   if (!usuario.esAdmin) {
     return (
@@ -26,10 +27,10 @@ export default async function Admin() {
     );
   }
 
-  const [datos, historial, fechas] = await Promise.all([obtenerDatos(), historialCargas(), fechasCorte()]);
+  const { actual, cargas, fechas } = await app.display.panelAdmin();
   return (
     <>
-      <Nav usuario={usuario} vista="admin" actualizado={datos?.carga.created_at} />
+      <Nav usuario={usuario} vista="admin" actualizado={actual?.carga.created_at} />
       <main className="wrap">
         <div className="top">
           <div>
@@ -37,7 +38,7 @@ export default async function Admin() {
             <p className="sub">Sube el Excel de levantamiento de la Zona {ZONA}. Cada Excel queda guardado como un corte con su fecha en el Historial.</p>
           </div>
         </div>
-        <AdminPanel zona={ZONA} actual={datos?.raw ?? null} historial={historial} fechas={fechas} />
+        <AdminPanel zona={ZONA} actual={actual?.raw ?? null} historial={cargas} fechas={fechas} />
       </main>
     </>
   );

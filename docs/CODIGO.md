@@ -15,48 +15,95 @@ el [manual](MANUAL.md); para instalarla, [INSTALACION.md](INSTALACION.md).
 | LLM (opcional) | Groq, API compatible con OpenAI |
 | Pruebas | Vitest, Playwright y axe |
 
+## Arquitectura
+
+El código sigue Clean Architecture: cuatro capas, y cada una solo puede depender de las que están más adentro.
+
+```
+  presentacion  ->  aplicacion  ->  dominio
+        |                ^
+        v                |
+  infraestructura -------+   (implementa los puertos de aplicacion)
+```
+
+| Capa | Qué tiene | De qué depende |
+|---|---|---|
+| `dominio/` | Tipos y reglas del negocio como funciones puras: share, historial, bitácora, Foto del Éxito, usuario y permisos, asistente | De nada (ni React, ni Next, ni Supabase) |
+| `aplicacion/` | Casos de uso (qué puede hacer cada usuario y en qué orden) y puertos: las interfaces de repositorios, sesión y modelo de lenguaje | Solo del dominio |
+| `infraestructura/` | Implementaciones de los puertos: Supabase, demo, Groq. Adaptadores de Excel. El `contenedor`, que arma todo | De aplicación y dominio |
+| `presentacion/` + `app/` | Páginas de Next, componentes, server actions | De los casos de uso a través del contenedor y de las server actions |
+
+La regla de dependencias no es solo una convención: `.eslintrc.json` la hace cumplir con `no-restricted-imports`.
+Si un componente importa Supabase o el dominio importa React, el lint falla.
+
+Cómo se ven los principios SOLID en el código:
+
+- **Responsabilidad única:** cada caso de uso hace una cosa; las pantallas grandes (Bitácora, Foto del Éxito) están
+  partidas en componentes chicos y un hook, y sus cálculos viven en el dominio.
+- **Abierto/cerrado:** el modo demo no es un `if (DEMO)` repetido en cada consulta: es otra implementación de los
+  mismos repositorios. Para cambiar de base de datos se escribe otro repositorio, sin tocar casos de uso ni pantallas.
+- **Sustitución de Liskov:** los repositorios de Supabase y de la demo cumplen el mismo contrato y son
+  intercambiables; los e2e corren sobre la demo y la app real sobre Supabase con el mismo código de pantalla.
+- **Segregación de interfaces:** un puerto por área (`RepositorioDisplay`, `RepositorioBitacora`, `RepositorioFoto`,
+  `ServicioSesion`, `ModeloLenguaje`), no un repositorio gigante.
+- **Inversión de dependencias:** los casos de uso reciben sus dependencias (`crearCasosBitacora({ repo, sesion, hoy })`).
+  Por eso se prueban con repositorios falsos en memoria (`aplicacion/casos-de-uso/casos.test.ts`). Hasta el reloj se
+  inyecta, para que las pruebas no dependan de la fecha.
+
 ## Estructura
 
 ```
 src/
-  middleware.ts            Exige sesión en todas las páginas (en demo deja pasar)
-  app/
-    page.tsx               Display
-    historial/ bitacora/ foto/ admin/ asistente/ login/
-    api/asistente/route.ts Agente con Groq (POST) y su estado (GET)
-    auth/salir/route.ts    Cierre de sesión
-    layout.tsx globals.css Tema claro/oscuro y estilos
-  components/              Componentes de cliente de cada pantalla, Nav, Donut, Iconos, Progreso
-  lib/
-    types.ts               Tipos y métricas
-    data.ts                Todo el acceso a datos desde el servidor
-    compute.ts             Agregados del Display
-    historial.ts           Cortes, medir, comparar
-    foto.ts                Semanas y cumplimiento de la Foto del Éxito
-    excel.ts fotoExcel.ts reporteBitacora.ts   Excel
-    format.ts              Formato de porcentajes, números y fechas
-    modo.ts demo.ts        Modo demo
-    supabase/              Clientes de Supabase (servidor, navegador, middleware)
-    asistente/             Texto, entidades, clasificador, herramientas, motor, agente, modelo entrenado
+  config.ts                      DEMO y ZONA (variables de entorno)
+  middleware.ts                  Exige sesión en todas las páginas (en demo deja pasar)
+  dominio/
+    comun/                       Resultado (ok o falla), fechas y formatos
+    usuario.ts                   Roles, permisos y destino seguro después del login
+    display/                     modelo.ts (métricas y tipos), share.ts (agregados), historial.ts (cortes, medir, comparar)
+    bitacora/bitacora.ts         Estado de visita, KPIs del mes, ranking de ejecutivos y validaciones
+    foto/foto.ts                 Semanas, cumplimiento, resumen de la semana, precarga del formulario, productos
+    asistente/                   Texto, entidades, clasificador, herramientas, motor, piezas del agente, modelo.json
+  aplicacion/
+    puertos.ts                   Interfaces que implementa la infraestructura
+    casos-de-uso/                acceso, display, bitacora, foto, sesion, asistente (con el ciclo del agente)
+  infraestructura/
+    contenedor.ts                Raíz de composición: elige Supabase o demo y arma los casos de uso
+    supabase/                    Cliente de servidor, middleware, sesión y repositorios
+    demo/                        Generador de datos (datos.ts) y repositorios que no guardan
+    groq/modelo.ts               Adaptador de Groq (implementa ModeloLenguaje)
+    excel/                       Leer y exportar el levantamiento, reporte de la Bitácora, Excel de la Foto
+  presentacion/
+    acceso.ts                    Convierte la decisión de acceso en redirección
+    acciones/                    Server actions: la única forma en que la interfaz escribe
+    componentes/                 comun/, display/, admin/, bitacora/, foto/, asistente/
+  app/                           Rutas de Next: páginas delgadas que llaman al contenedor
 supabase/
-  schema.sql               Esquema completo (idempotente)
-  migraciones/             Cambios incrementales para una base ya creada
-  seed.sql                 Datos de ejemplo
-scripts/                   entrenar-asistente.ts, generar-seed.ts, revisar-unicode.mjs
-e2e/                       Pruebas de Playwright
+  schema.sql                     Esquema completo (idempotente)
+  migraciones/                   Cambios incrementales para una base ya creada
+  seed.sql                       Datos de ejemplo
+scripts/                         entrenar-asistente.ts, generar-seed.ts, revisar-unicode.mjs
+e2e/                             Pruebas de Playwright
 ```
 
 ## Flujo de una página
 
 1. `middleware.ts` refresca la sesión de Supabase. Sin usuario, redirige a `/login?next=<ruta>`.
-2. El `page.tsx` de la ruta (Server Component, `force-dynamic`) pide en paralelo la sesión (`usuarioActual`) y los
-   datos (`obtenerDatos`, `obtenerHistorial`...). `enParalelo()` evita que un error de datos tape la redirección.
-3. Si el usuario es promotor, se le manda a `/foto`.
-4. La página renderiza `Nav` y el componente de cliente con los datos como props.
-5. En el navegador, el componente calcula lo que necesita (por ejemplo `compute()` en el Display) y maneja filtros y
-   formularios sin volver al servidor.
-6. Las escrituras (Bitácora, Foto del Éxito, publicar el Excel) van directo desde el navegador a Supabase con el
-   cliente de `lib/supabase/client.ts`. RLS decide si se permiten.
+2. El `page.tsx` crea el contenedor y llama a `cargarVista(vista, casoDeUso)`. Ese caso de uso pide la sesión y los
+   datos en paralelo y decide: ir al login, mandar al promotor a `/foto` o mostrar la página.
+3. La página renderiza `Nav` y el componente de cliente con los datos como props.
+4. En el navegador, el componente calcula lo que necesita con funciones del dominio (por ejemplo `compute()` en el
+   Display) y maneja filtros y formularios sin volver al servidor.
+
+## Flujo de una escritura
+
+```
+Componente -> server action (presentacion/acciones) -> caso de uso -> puerto -> repositorio Supabase o demo
+```
+
+El componente valida con las mismas reglas del dominio para avisar al tiro. El caso de uso revisa el permiso y vuelve
+a validar, porque lo que llega del navegador no es confiable. El repositorio traduce los errores de Postgres (por
+ejemplo `23505`, duplicado) a una `Falla` con código, y la pantalla elige el mensaje. Al final RLS decide igual en la
+base: son tres barreras, no una.
 
 ## Base de datos
 
@@ -90,27 +137,32 @@ de la Bitácora, y `foto_producto_borrar` impide borrar un producto ya usado.
 
 ## Módulos de cálculo
 
-- `compute(raw)` en `compute.ts` recorre tienda, métrica y marca una sola vez y acumula para todas las combinaciones
+- `compute(raw)` en `dominio/display/share.ts` recorre tienda, métrica y marca una sola vez y acumula para todas las combinaciones
   de cobertura, cliente y ciudad (incluida "Todas"). Devuelve mapas por clave `cobertura|cliente|ciudad|métrica`. El
   puesto es 1 más la cantidad de marcas con más unidades; los empates comparten puesto. Muebles se arma sumando DC
   y Display Zone por tienda.
-- `medir(corte, códigos, métrica)` en `historial.ts` suma solo las tiendas con levantamiento y devuelve unidades por
+- `medir(corte, códigos, métrica)` en `dominio/display/historial.ts` suma solo las tiendas con levantamiento y devuelve unidades por
   marca, total, share y puesto. La usan Historial, comparaciones y asistente.
 - `comparar(A, B, tiendas, métrica)` devuelve por tienda el share antes y después y su tendencia. `tendencia()`
   redondea a 0,1 pp.
-- `cumplimiento(respuesta)` en `foto.ts` es exigidos exhibidos dividido por exigidos.
+- `cumplimiento(respuesta)` en `dominio/foto/foto.ts` es exigidos exhibidos dividido por exigidos; `resumenSemana()`
+  arma los indicadores de la vista del equipo.
+- `estadoVisita()`, `resumenMes()` y `rankingEjecutivos()` en `dominio/bitacora/bitacora.ts` calculan lo que muestra
+  la Bitácora.
 
 ## Excel
 
-- `leerExcel(buffer)` lee el levantamiento con SheetJS y devuelve los datos más listas de errores y avisos.
-- `aPayload()` arma el JSON para `publicar_carga`.
+Están en `infraestructura/excel/` y corren en el navegador.
+
+- `leerExcel(buffer)` lee el levantamiento con SheetJS y devuelve los datos más listas de errores y avisos. Lo que se
+  manda a publicar ya son datos del dominio; el JSON para `publicar_carga` lo arma el repositorio de Supabase.
 - `exportarExcel()` y `exportarComparacion()` generan plantillas y comparaciones; `reporteBitacora.ts` y
-  `fotoExcel.ts` generan reportes con formato usando ExcelJS.
+  `fotoSemana.ts` generan reportes con formato usando ExcelJS.
 - Todo se carga con `import()` dinámico solo cuando se usa.
 
 ## Asistente
 
-Pipeline en `src/lib/asistente/`:
+Pipeline en `src/dominio/asistente/` (todo puro, corre en el navegador):
 
 | Archivo | Responsabilidad |
 |---|---|
@@ -120,7 +172,7 @@ Pipeline en `src/lib/asistente/`:
 | `intenciones.ts` | Las 10 intenciones con nombre y ejemplo |
 | `herramientas.ts` | Una función por intención que calcula la respuesta (texto, tabla, serie y sugerencias) |
 | `motor.ts` | `crearMotor(modelo, datos)`: extracción, clasificación, reglas y `ejecutar()` |
-| `agente.ts` | Agente con Groq: herramientas en formato OpenAI, bucle de hasta 5 rondas y verificador de cifras |
+| `agente.ts` | Piezas del agente: instrucciones, herramientas en formato OpenAI, ejecución de cada pedido y verificador de cifras |
 | `modelo.json` | Modelo entrenado (vocabulario, idf, pesos y sesgos), unos 21 KB comprimido |
 | `evaluacion.ts` | 75 preguntas escritas a mano con su intención y entidades esperadas |
 
@@ -133,17 +185,18 @@ Reglas del motor, en orden: un saludo solo va a Ayuda; "por ciudad", "cada clien
 nombrados van a comparar grupos; bajo el umbral responde que no está seguro; si se nombra una tienda y la intención es
 share o líder, pasa al detalle de la tienda.
 
-Agente (`agente.ts` y `api/asistente/route.ts`): la ruta exige sesión (excepto en demo), limita a 8 preguntas cada
-10 minutos por IP, valida el cuerpo y llama a `responderConAgente`. El agente manda el sistema, los últimos 3 turnos
+Agente: `api/asistente/route.ts` limita a 8 preguntas cada 10 minutos por IP y llama al caso de uso `preguntar`
+(`aplicacion/casos-de-uso/asistente.ts`), que exige sesión, valida la pregunta y corre `responderConAgente`. Ese ciclo
+habla con el puerto `ModeloLenguaje`; la llamada HTTP a Groq está en `infraestructura/groq/modelo.ts`. El agente manda el sistema, los últimos 3 turnos
 y la pregunta; ejecuta las herramientas que pida el modelo con argumentos validados contra los datos; en la quinta
 ronda fuerza `tool_choice: 'none'`; y al final verifica las cifras. Sin `GROQ_API_KEY`, el GET responde
 `disponible: false` y la interfaz no muestra el modo Groq.
 
 ## Modo demo
 
-Con `NEXT_PUBLIC_DEMO=1`: `data.ts` devuelve datos de `demo.ts`, el middleware no exige sesión, el cliente de
-Supabase del navegador responde siempre con el aviso de demo y `layout.tsx` permite indexar la página. Los datos se
-generan con semilla fija y fechas relativas a hoy. `npm run seed:demo` escribe esos mismos datos en `seed.sql`.
+Con `NEXT_PUBLIC_DEMO=1` el contenedor usa los repositorios de `infraestructura/demo/`: leen datos generados con
+semilla fija y fechas relativas a hoy, y toda escritura responde con el aviso de demo. El middleware no exige sesión y
+`layout.tsx` permite indexar la página. `npm run seed:demo` escribe esos mismos datos en `seed.sql`.
 
 ## Variables de entorno
 
@@ -160,7 +213,7 @@ generan con semilla fija y fechas relativas a hoy. `npm run seed:demo` escribe e
 
 | Comando | Qué corre |
 |---|---|
-| `npm test` | 94 tests de Vitest en `src/**/*.test.ts` |
+| `npm test` | 120 tests de Vitest en `src/**/*.test.ts`: dominio, casos de uso con repositorios falsos y el agente con un Groq falso |
 | `npm run test:e2e` | 31 pruebas de Playwright en `e2e/` sobre el modo demo, incluida la revisión de accesibilidad con axe |
 | `npm run lint:unicode` | Falla si hay símbolos fuera de ASCII y tildes |
 
@@ -171,16 +224,20 @@ corre tipos, lint, Unicode, tests, compilación y Playwright.
 
 - Nombres de variables, funciones y comentarios en español, salvo términos técnicos.
 - Sin símbolos Unicode fuera de ASCII y tildes en ningún archivo de texto; en regex se usan escapes (`\u0300-\u036f`).
-- La lógica de negocio va en `src/lib/` como funciones puras con tests; los componentes solo muestran y capturan.
+- La lógica de negocio va en `src/dominio/` como funciones puras con tests; los componentes solo muestran y capturan.
+- Lo que puede fallar devuelve un `Resultado` (`{ ok, valor }` o `{ ok: false, falla }`) en vez de lanzar errores.
+- Los comentarios explican el porqué, no el qué: si el código ya lo dice, no se comenta.
 - Los cambios de esquema van en `supabase/migraciones/` y también en `schema.sql`, que debe seguir siendo idempotente.
 
 ## Cómo extender
 
-- **Una métrica nueva** (por ejemplo, ventas por marca): agrégala a `METRICAS_DATOS` en `types.ts` y como hoja en
-  `excel.ts`. Historial y comparaciones la toman sin cambios porque todo pasa por `medir()`.
+- **Una métrica nueva** (por ejemplo, ventas por marca): agrégala a `METRICAS_DATOS` en `dominio/display/modelo.ts` y como
+  hoja en `infraestructura/excel/levantamiento.ts`. Historial y comparaciones la toman sin cambios porque todo pasa por `medir()`.
 - **Otra zona:** la tabla `zonas` ya trae Norte, Centro y Sur. Se puede desplegar una copia por zona con
   `NEXT_PUBLIC_ZONA` o agregar un selector.
 - **Una intención nueva en el asistente:** plantillas en `scripts/entrenar-asistente.ts`, la entrada en
   `intenciones.ts`, la función en `herramientas.ts`, el caso en `ejecutar()` de `motor.ts` y, si el agente la debe
   usar, en `HERRAMIENTAS` de `agente.ts`. Después, reentrenar.
-- **Fotos de exhibición:** Supabase Storage, con una tabla que relacione foto, tienda y fecha.
+- **Fotos de exhibición:** un método nuevo en el puerto (`subirFoto`), su implementación con Supabase Storage y otra
+  en la demo. Los casos de uso y las pantallas no se enteran de dónde se guardan.
+- **Otra base de datos u otro LLM:** otra implementación del puerto y un cambio en `contenedor.ts`. Nada más.

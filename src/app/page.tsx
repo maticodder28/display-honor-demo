@@ -1,23 +1,17 @@
 import Link from 'next/link';
-import { redirect } from 'next/navigation';
-import Dashboard from '@/components/Dashboard';
-import Nav from '@/components/Nav';
-import { obtenerDatos, usuarioActual, enParalelo } from '@/lib/data';
-import { fdate } from '@/lib/format';
-import { METRICAS_DATOS } from '@/lib/types';
+import Dashboard from '@/presentacion/componentes/display/Dashboard';
+import Nav from '@/presentacion/componentes/comun/Nav';
+import { fdate } from '@/dominio/comun/formato';
+import { fechaMaxima } from '@/dominio/display/modelo';
+import { contenedor } from '@/infraestructura/contenedor';
+import { exigirAcceso } from '@/presentacion/acceso';
 
 export const dynamic = 'force-dynamic';
 
 export default async function Inicio() {
-  // La sesión y los datos se piden en paralelo (los permisos los aplica la base de datos).
-  const pedido = enParalelo(obtenerDatos());
-  const usuario = await usuarioActual();
-  if (!usuario) redirect('/login');
-  if (usuario.esPromotor) redirect('/foto');
-  const datos = await pedido;
-
-  let corte = '';
-  if (datos) for (const [m] of METRICAS_DATOS) for (const r of Object.values(datos.raw.metricas[m])) if (r.fecha && r.fecha > corte) corte = r.fecha;
+  const app = contenedor();
+  const { usuario, datos } = exigirAcceso(await app.cargarVista('dashboard', app.display.corteActual), '/');
+  const corte = datos ? fechaMaxima(datos.raw) : null;
 
   return (
     <>
