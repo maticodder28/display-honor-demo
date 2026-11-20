@@ -5,8 +5,8 @@
  * 1. Genera preguntas de entrenamiento a partir de plantillas (con sinonimos, rellenos y errores de tipeo).
  * 2. Las pasa por el mismo extractor de entidades que usa la app, para entrenar con lo que el modelo vera.
  * 3. Separa 80/20, entrena una regresion logistica multinomial (descenso de gradiente con L2) y mide.
- * 4. Evalua ademas con preguntas escritas a mano (src/lib/asistente/evaluacion.ts), que no salen de las plantillas.
- * 5. Guarda el modelo en src/lib/asistente/modelo.json y el reporte en docs/asistente-evaluacion.md.
+ * 4. Evalúa además con preguntas escritas a mano (src/dominio/asistente/evaluacion.ts), que no salen de las plantillas.
+ * 5. Guarda el modelo en src/dominio/asistente/modelo.json y el reporte en docs/asistente-evaluacion.md.
  */
 import { writeFileSync } from 'node:fs';
 import { UMBRAL, caracteristicas, indexador, puntajes, softmax, vectorizar, type Modelo } from '../src/dominio/asistente/clasificador';
@@ -328,7 +328,7 @@ rMano.errores.forEach((e) => console.log('  - ' + e));
 console.log(`Motor completo (clasificador + reglas): ${pct(exMotor)}`);
 erroresMotor.forEach((e) => console.log('  * ' + e));
 
-writeFileSync(new URL('../src/lib/asistente/modelo.json', import.meta.url), JSON.stringify(modelo));
+writeFileSync(new URL('../src/dominio/asistente/modelo.json', import.meta.url), JSON.stringify(modelo));
 
 const tabla = (r: ReturnType<typeof medir>) => [
   '| Intención | Preguntas | Precisión | Recall | F1 |',
