@@ -62,8 +62,18 @@ export interface FotoDatos {
   perfiles: Perfil[];
 }
 
-/** Lo que manda el formulario. Pedidos y exigidos los calcula la base con los productos y prioridades vigentes. */
-export interface EnvioFoto { tienda: string; semana: string; exhibidos: number[]; mesas: number[]; comentario: string }
+/**
+ * Lo que manda el formulario. Pedidos y exigidos los calcula la base con los productos y prioridades vigentes.
+ * `version` es la fecha de la respuesta que se vio al abrir el formulario (null si no había): si en la base hay
+ * otra, alguien guardó entremedio y no se sobrescribe, salvo que quien llena elija `reemplazar`.
+ */
+export interface EnvioFoto {
+  tienda: string; semana: string; exhibidos: number[]; mesas: number[]; comentario: string;
+  version: string | null; reemplazar: boolean;
+}
+
+/** Lo que devuelve la base al guardar: la versión nueva y las listas que calculó. */
+export interface FotoGuardada { id: number; updated_at: string; pedidos: number[]; requeridos: number[] }
 
 export type TipoProducto = 'Equipo' | 'Accesorio';
 export interface DatosProducto { nombre: string; corto: string; tipo: TipoProducto }

@@ -54,8 +54,10 @@ describe('casos de uso de la bitácora', () => {
 
 describe('casos de uso de la Foto del Éxito', () => {
   const guardadas: unknown[] = [];
-  const repo = { guardar: async (e: unknown) => { guardadas.push(e); return vacio(); } } as unknown as RepositorioFoto;
-  const envio = { tienda: 'DM101', semana: '2026-11-16', exhibidos: [1], mesas: [5, 900], comentario: ' ok ' };
+  const repo = {
+    guardar: async (e: unknown) => { guardadas.push(e); return exito({ id: 1, updated_at: 't2', pedidos: [1], requeridos: [] }); },
+  } as unknown as RepositorioFoto;
+  const envio = { tienda: 'DM101', semana: '2026-11-16', exhibidos: [1], mesas: [5, 900], comentario: ' ok ', version: 't1', reemplazar: false };
 
   it('el promotor guarda su tienda en la semana actual, con las mesas acotadas', async () => {
     const r = await crearCasosFoto({ repo, sesion: sesionCon('promotor', 'DM101'), hoy }).guardar(envio);
@@ -74,13 +76,21 @@ describe('casos de uso de la Foto del Éxito', () => {
 });
 
 describe('publicar un corte', () => {
-  const repo = { publicar: async () => vacio() } as unknown as RepositorioDisplay;
+  // Otro admin ya publicó el 2026-11-12 (la lista que tenía la página no lo sabía).
+  const repo = { publicar: async () => vacio(), fechasDeCorte: async () => ['2026-11-12'] } as unknown as RepositorioDisplay;
   const datos = { marcas: ['Honor'], tiendas: [{ codigo: 'DM101' }], metricas: {} } as never;
+  const p = (fechaCorte: string, reemplazar = false) => ({ datos, archivo: 'x.xlsx', fechaCorte, reemplazar });
   it('pide admin y una fecha de corte que no sea futura', async () => {
     const casos = (rol: Rol) => crearCasosDisplay({ repo, sesion: sesionCon(rol), hoy });
-    expect((await casos('registro').publicar({ datos, archivo: 'x.xlsx', fechaCorte: '2026-11-19' })).ok).toBe(false);
-    expect((await casos('admin').publicar({ datos, archivo: 'x.xlsx', fechaCorte: '2026-11-20' })).ok).toBe(false);
-    expect((await casos('admin').publicar({ datos, archivo: 'x.xlsx', fechaCorte: '2026-11-19' })).ok).toBe(true);
+    expect((await casos('registro').publicar(p('2026-11-19'))).ok).toBe(false);
+    expect((await casos('admin').publicar(p('2026-11-20'))).ok).toBe(false);
+    expect((await casos('admin').publicar(p('2026-11-19'))).ok).toBe(true);
+  });
+  it('no reemplaza un corte existente sin confirmación, aunque la página no lo supiera', async () => {
+    const casos = crearCasosDisplay({ repo, sesion: sesionCon('admin'), hoy });
+    const r = await casos.publicar(p('2026-11-12'));
+    expect(!r.ok && r.falla.codigo).toBe('conflicto');
+    expect((await casos.publicar(p('2026-11-12', true))).ok).toBe(true);
   });
 });
 

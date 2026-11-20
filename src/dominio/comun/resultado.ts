@@ -1,7 +1,8 @@
 // Las operaciones que pueden fallar devuelven esto en vez de lanzar errores.
 // Así la pantalla siempre sabe qué pasó y el objeto viaja sin problema desde una server action.
 
-export type CodigoFalla = 'sin_permiso' | 'invalido' | 'duplicado' | 'en_uso' | 'demo' | 'otro';
+// 'conflicto': otra persona guardó lo mismo entremedio; la pantalla ofrece recargar o reemplazar.
+export type CodigoFalla = 'sin_permiso' | 'invalido' | 'duplicado' | 'en_uso' | 'conflicto' | 'demo' | 'otro';
 
 export interface Falla {
   codigo: CodigoFalla;

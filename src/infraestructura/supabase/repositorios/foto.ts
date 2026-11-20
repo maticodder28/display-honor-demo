@@ -1,7 +1,7 @@
 import type { RepositorioFoto } from '@/aplicacion/puertos';
 import type { BitPerfil } from '@/dominio/bitacora/bitacora';
 import { exito, vacio } from '@/dominio/comun/resultado';
-import { FOTO_CLIENTE, type FotoPrioridad, type FotoProducto, type FotoRespuesta, type FotoSemana, type FotoTienda } from '@/dominio/foto/foto';
+import { FOTO_CLIENTE, type FotoGuardada, type FotoPrioridad, type FotoProducto, type FotoRespuesta, type FotoSemana, type FotoTienda } from '@/dominio/foto/foto';
 import type { ClienteSupabase } from '../servidor';
 import { aFalla, idZona } from './comun';
 
@@ -37,12 +37,14 @@ export function repositorioFotoSupabase(db: () => Promise<ClienteSupabase>, zona
       };
     },
 
-    // guardar_foto calcula en la base los pedidos y exigidos de la semana, así no dependen del navegador.
+    // guardar_foto calcula en la base los pedidos y exigidos de la semana, así no dependen del navegador,
+    // y compara la versión para no pisar lo que otra persona guardó mientras tanto.
     async guardar(e) {
-      const { error } = await (await db()).rpc('guardar_foto', {
+      const { data, error } = await (await db()).rpc('guardar_foto', {
         p_tienda: e.tienda, p_exhibidos: e.exhibidos, p_mesas: e.mesas, p_comentario: e.comentario, p_semana: e.semana,
+        p_version: e.version, p_comprobar: !e.reemplazar,
       });
-      return error ? aFalla(error, 'No se pudo enviar') : vacio();
+      return error || !data ? aFalla(error ?? { message: 'error desconocido' }, 'No se pudo enviar') : exito(data as FotoGuardada);
     },
 
     async crearProducto(p) {

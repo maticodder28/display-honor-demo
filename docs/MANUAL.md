@@ -129,5 +129,13 @@ publicación; los avisos (en amarillo) no.
 **Un número del asistente no me cuadra con el Display.** Revisa los filtros: el asistente usa los que entendió de tu
 pregunta, y se ven en "Cómo lo entendí". Si no le diste métrica, usa exhibiciones.
 
+**Me apareció "X guardó esta tienda mientras la llenabas".** Otra persona envió la Foto del Éxito de esa misma tienda
+y semana mientras tú la llenabas. La app no reemplaza lo suyo sin preguntarte: con "Recargar con su versión" ves lo
+que guardó (lo que marcaste se pierde) y con "Guardar igual con lo mío" la reemplazas. Si no estás seguro, recarga y
+revisa.
+
+**Al publicar me dice que otra persona acaba de publicar esa fecha.** Otro admin subió un corte con la misma fecha
+después de que abriste Admin. Si confirmas, tu Excel lo reemplaza; si no, no se publica nada.
+
 **¿Mis preguntas al asistente salen de la app?** Con el modelo propio, no: todo corre en tu navegador. Con el agente
 de Groq, sí: la pregunta y los datos que consulta se envían a Groq.

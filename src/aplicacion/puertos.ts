@@ -7,7 +7,7 @@ import type { Resultado } from '@/dominio/comun/resultado';
 import type { FalloLLM, MensajeChat } from '@/dominio/asistente/agente';
 import type { Historial } from '@/dominio/display/historial';
 import type { CargaInfo, DatosCarga } from '@/dominio/display/modelo';
-import type { DatosProducto, EnvioFoto, FotoDatos, FotoProducto } from '@/dominio/foto/foto';
+import type { DatosProducto, EnvioFoto, FotoDatos, FotoGuardada, FotoProducto } from '@/dominio/foto/foto';
 import type { Usuario } from '@/dominio/usuario';
 
 export interface CorteActual { raw: DatosCarga; carga: CargaInfo }
@@ -22,7 +22,8 @@ export interface CargaPublicada {
   por_nombre: string | null;
 }
 
-export interface Publicacion { datos: DatosCarga; archivo: string; fechaCorte: string }
+/** `reemplazar`: quien publica ya confirmó que se reemplaza el corte de esa fecha si existe. */
+export interface Publicacion { datos: DatosCarga; archivo: string; fechaCorte: string; reemplazar: boolean }
 
 export interface RepositorioDisplay {
   /** Corte más reciente de la zona, o null si todavía no se sube ninguno. */
@@ -47,7 +48,8 @@ export interface RepositorioBitacora {
 export interface RepositorioFoto {
   /** Productos, prioridades, tiendas Entel y respuestas desde la semana indicada. */
   datos(desde: string): Promise<FotoDatos>;
-  guardar(e: EnvioFoto): Promise<Resultado>;
+  /** Falla con 'conflicto' si la versión no calza y no se pidió reemplazar. */
+  guardar(e: EnvioFoto): Promise<Resultado<FotoGuardada>>;
   crearProducto(p: DatosProducto & { orden: number }): Promise<Resultado<FotoProducto>>;
   editarProducto(id: number, p: DatosProducto): Promise<Resultado>;
   activarProducto(id: number, activo: boolean): Promise<Resultado>;

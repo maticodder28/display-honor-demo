@@ -1,6 +1,6 @@
 import { fallo, type Resultado } from '@/dominio/comun/resultado';
 import {
-  CLUSTERS, acotarMesa, lunesDe, normalizarProducto, sumarDias, validarEnvio, type DatosProducto, type EnvioFoto, type FotoProducto,
+  CLUSTERS, acotarMesa, lunesDe, normalizarProducto, sumarDias, validarEnvio, type DatosProducto, type EnvioFoto, type FotoGuardada, type FotoProducto,
 } from '@/dominio/foto/foto';
 import { puedeLlenarFoto } from '@/dominio/usuario';
 import type { RepositorioFoto, ServicioSesion } from '../puertos';
@@ -22,7 +22,7 @@ export function crearCasosFoto({ repo, sesion, hoy }: Dependencias) {
     semanaActual,
     datos: () => repo.datos(sumarDias(semanaActual(), -7 * (SEMANAS_DE_HISTORIA - 1))),
 
-    async guardar(e: EnvioFoto): Promise<Resultado> {
+    async guardar(e: EnvioFoto): Promise<Resultado<FotoGuardada>> {
       const u = await sesion.usuarioActual();
       if (!u || !puedeLlenarFoto(u, e.tienda)) return fallo('sin_permiso', 'Tu usuario no puede llenar esta tienda.');
       if (u.esPromotor && e.semana !== semanaActual()) return fallo('sin_permiso', 'El promotor solo llena la semana actual.');

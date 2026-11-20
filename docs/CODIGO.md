@@ -105,6 +105,12 @@ a validar, porque lo que llega del navegador no es confiable. El repositorio tra
 ejemplo `23505`, duplicado) a una `Falla` con código, y la pantalla elige el mensaje. Al final RLS decide igual en la
 base: son tres barreras, no una.
 
+Cuando dos personas pueden editar lo mismo se usa bloqueo optimista. En la Foto del Éxito, el formulario manda la
+versión (`updated_at`) de la respuesta que vio; `guardar_foto` toma un candado por tienda y semana
+(`pg_advisory_xact_lock`), compara y, si alguien guardó entremedio, responde con el código `40001`. El repositorio
+lo traduce a una falla `conflicto` y la pantalla ofrece recargar o reemplazar. Al publicar un corte, el caso de uso
+revisa las fechas en ese momento y no con la lista que se cargó con la página.
+
 ## Base de datos
 
 | Tabla | Contenido |

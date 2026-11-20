@@ -51,7 +51,15 @@ export default function AdminPanel({ zona, actual, historial, fechas }: Props) {
     if (!valido || !lectura?.datos || !archivo) return;
     if (fechas.includes(corte) && !window.confirm(`Ya hay un corte con fecha ${fdate(corte)}. ¿Reemplazarlo por este Excel? El anterior se borra del historial.`)) return;
     setEstado({ tipo: 'trabajando', texto: 'Publicando...' });
-    const r = await publicarCarga({ datos: lectura.datos, archivo, fechaCorte: corte });
+    let r = await publicarCarga({ datos: lectura.datos, archivo, fechaCorte: corte, reemplazar: fechas.includes(corte) });
+    // Otro admin publicó esa fecha después de que se abrió esta página: se pregunta de nuevo antes de reemplazar.
+    if (!r.ok && r.falla.codigo === 'conflicto') {
+      if (!window.confirm(`${r.falla.mensaje} Otra persona lo acaba de publicar. ¿Reemplazarlo por este Excel?`)) {
+        setEstado({ tipo: 'error', texto: 'No se publicó: ya existe un corte con esa fecha.' });
+        return;
+      }
+      r = await publicarCarga({ datos: lectura.datos, archivo, fechaCorte: corte, reemplazar: true });
+    }
     if (!r.ok) {
       setEstado({ tipo: 'error', texto: r.falla.mensaje });
       return;

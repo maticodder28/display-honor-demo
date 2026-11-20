@@ -23,27 +23,34 @@ export default function Formulario({ usuario, semanaActual, productos, prioDe, t
   const [form, setForm] = useState(() => precargar(respuestas, productos, tienda, semana));
   const [estado, setEstado] = useState<Estado>(null);
   const [guardando, setGuardando] = useState(false);
+  // Si otra persona guardó la misma tienda y semana mientras se llenaba, se pregunta qué hacer.
+  const [conflicto, setConflicto] = useState<string | null>(null);
 
-  const elegir = (cod: string, sem: string) => { setTienda(cod); setSemana(sem); setForm(precargar(respuestas, productos, cod, sem)); setEstado(null); };
+  const elegir = (cod: string, sem: string) => { setTienda(cod); setSemana(sem); setForm(precargar(respuestas, productos, cod, sem)); setEstado(null); setConflicto(null); };
   const lista = productos.filter((p) => form.pedidos.includes(p.id)).sort((a, b) => a.orden - b.orden);
   const alternar = (id: number) => setForm((f) => ({ ...f, exhibidos: f.exhibidos.includes(id) ? f.exhibidos.filter((x) => x !== id) : [...f.exhibidos, id] }));
   const setMesa = (i: number, v: string) => setForm((f) => { const m = f.mesas.slice(); m[i] = acotarMesa(parseInt(v, 10)); return { ...f, mesas: m }; });
   const t = tiendas.find((x) => x.codigo === tienda);
   const prioridades = prioDe(semana);
 
-  async function enviar() {
+  async function enviar(reemplazar = false) {
     setGuardando(true);
+    setConflicto(null);
     const comentario = form.comentario.trim();
-    const r = await guardarFoto({ tienda, semana, exhibidos: form.exhibidos, mesas: form.mesas, comentario });
+    // La versión es la respuesta que vi al abrir; si no había ninguna, null.
+    const version = form.origen === 'enviada' && form.r ? form.r.updated_at : null;
+    const r = await guardarFoto({ tienda, semana, exhibidos: form.exhibidos, mesas: form.mesas, comentario, version, reemplazar });
     setGuardando(false);
-    if (!r.ok) { setEstado({ ok: false, texto: r.falla.mensaje }); return; }
-    // La base ya calculó pedidos y exigidos; acá armo la misma respuesta para mostrarla sin recargar.
+    if (!r.ok) {
+      if (r.falla.codigo === 'conflicto') { setConflicto(r.falla.mensaje); setEstado(null); return; }
+      setEstado({ ok: false, texto: r.falla.mensaje });
+      return;
+    }
+    // Uso lo que devolvió la base (versión, pedidos y exigidos) para mostrarla sin recargar.
     const guardada: FotoRespuesta = {
-      id: form.r && form.origen === 'enviada' ? form.r.id : -Date.now(), semana, tienda_codigo: tienda, pedidos: form.pedidos,
-      requeridos: form.origen === 'enviada' && form.r ? form.r.requeridos
-        : form.pedidos.filter((id) => numeroPrioridad(prioridades, id, t?.cluster ?? null) != null),
-      exhibidos: form.exhibidos.filter((id) => form.pedidos.includes(id)), mesas: form.mesas, comentario,
-      actualizado_por: usuario.id, updated_at: new Date().toISOString(),
+      id: r.valor.id, semana, tienda_codigo: tienda, pedidos: r.valor.pedidos, requeridos: r.valor.requeridos,
+      exhibidos: form.exhibidos.filter((id) => r.valor.pedidos.includes(id)), mesas: form.mesas, comentario,
+      actualizado_por: usuario.id, updated_at: r.valor.updated_at,
     };
     onGuardada(guardada);
     setForm({ origen: 'enviada', r: guardada, pedidos: guardada.pedidos, exhibidos: guardada.exhibidos, mesas: guardada.mesas, comentario });
@@ -125,7 +132,16 @@ export default function Formulario({ usuario, semanaActual, productos, prioDe, t
             placeholder="Ej. Solo dummies, falta código, robo de Watch 6..." />
         </label>
         {estado && <div className={'msg ' + (estado.ok ? 'o' : 'e')}>{estado.texto}</div>}
-        <button className="abtn foto-enviar" type="button" onClick={enviar} disabled={guardando || !tienda}>
+        {conflicto && (
+          <div className="msg w" role="alert">
+            {conflicto} Recarga para ver su versión (lo que marcaste aquí se pierde) o guarda igual para reemplazarla con lo tuyo.
+            <div className="row" style={{ marginTop: 8 }}>
+              <button className="abtn ghost" type="button" onClick={() => window.location.reload()}>Recargar con su versión</button>
+              <button className="abtn" type="button" onClick={() => enviar(true)} disabled={guardando}>Guardar igual con lo mío</button>
+            </div>
+          </div>
+        )}
+        <button className="abtn foto-enviar" type="button" onClick={() => enviar()} disabled={guardando || !tienda}>
           {guardando ? 'Enviando...' : form.origen === 'enviada' ? 'Guardar corrección' : 'Enviar Foto del Éxito'}
         </button>
       </section>
